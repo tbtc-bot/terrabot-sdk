@@ -1,4 +1,4 @@
-module github.com/tbtc-bot/terrabot
+module github.com/tbtc-bot/terrabot-sdk
 
 go 1.16
 

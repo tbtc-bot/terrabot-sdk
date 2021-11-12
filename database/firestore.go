@@ -6,7 +6,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
-	"github.com/tbtc-bot/terrabot"
+	"github.com/tbtc-bot/terrabot-sdk"
 	"go.uber.org/zap"
 	"google.golang.org/api/option"
 )
