@@ -1,4 +1,4 @@
-package rabbitmq
+package queue
 
 type RmqUserDataEvent struct {
 	UserId    string                 `json:"userId"`
