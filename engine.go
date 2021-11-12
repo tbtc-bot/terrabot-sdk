@@ -32,6 +32,12 @@ type Order struct {
 	GridNumber   int64            `json:"gridNumber"`
 }
 
+type OpenOrders map[string]Order
+
+func (o OpenOrders) String() string {
+	return fmt.Sprint(len(o))
+}
+
 func (order Order) String() string {
 	switch order.Type {
 	case OrderLimit:
