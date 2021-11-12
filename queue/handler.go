@@ -1,7 +1,9 @@
 package queue
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/rabbitmq/amqp091-go"
@@ -151,5 +153,72 @@ func (q *QueueHandler) StartConsumingQueueCommand(parseCommandHandler func(event
 		rabbitmq.WithConsumeOptionsQueueDurable,
 		rabbitmq.WithConsumeOptionsQuorum,
 		rabbitmq.WithConsumeOptionsBindingExchangeName("amq.direct"),
+	)
+}
+
+// Telegram
+type MessageType string
+
+const (
+	MsgTP      MessageType = "takeProfit"
+	MsgInfo    MessageType = "info"
+	MsgWarning MessageType = "warning"
+	MsgError   MessageType = "error"
+)
+
+// RabbitMq
+type RmqMessageEvent struct {
+	BotId    string `json:"botId"`
+	UserId   string `json:"userId"`
+	Message  string `json:"message"`
+	Severity string `json:"severity"` // info | warn
+}
+
+type RmqTpEvent struct {
+	BotId           string `json:"botId"`
+	UserId          string `json:"userId"`
+	Symbol          string `json:"symbol"`
+	EventType       string `json:"eventType"`
+	EventSide       string `json:"eventSide"`
+	AveragePrice    string `json:"averagePrice"`
+	FilledQty       string `json:"filledQty"`
+	RealizedProfit  string `json:"realizedProfit"`
+	ExecutedAt      int64  `json:"executedAt"`
+	TotalGridSteps  string `json:"totalGridSteps"`
+	CurrentGridStep string `json:"currentGridStep"`
+}
+
+func (q *QueueHandler) PublishTelegramMessage(body RmqMessageEvent, msgType MessageType) error {
+
+	var routingKey string
+	switch msgType {
+	case MsgInfo, MsgWarning, MsgError:
+		routingKey = "generic.notification.message"
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(&body)
+
+	return q.Publisher.Publish(
+		reqBodyBytes.Bytes(),
+		[]string{routingKey},
+		rabbitmq.WithPublishOptionsContentType("application/json"),
+		rabbitmq.WithPublishOptionsMandatory,
+		rabbitmq.WithPublishOptionsExchange("amq.direct"),
+	)
+}
+
+func (q *QueueHandler) PublishTelegramTp(body RmqTpEvent) error {
+
+	//todo readapt according to the parameters
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(&body)
+
+	return q.Publisher.Publish(
+		reqBodyBytes.Bytes(),
+		[]string{"generic.notification.takeprofit"},
+		rabbitmq.WithPublishOptionsContentType("application/json"),
+		rabbitmq.WithPublishOptionsMandatory,
+		rabbitmq.WithPublishOptionsExchange("amq.direct"),
 	)
 }
