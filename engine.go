@@ -15,8 +15,9 @@ const (
 	SideBuy  SideType = "buy"
 	SideSell SideType = "sell"
 
-	PositionSideLong  PositionSideType = "long"
-	PositionSideShort PositionSideType = "short"
+	// TODO change this
+	PositionSideLong  PositionSideType = "LONG"
+	PositionSideShort PositionSideType = "SHORT"
 )
 
 type Order struct {
