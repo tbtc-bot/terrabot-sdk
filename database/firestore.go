@@ -8,6 +8,7 @@ import (
 	firebase "firebase.google.com/go"
 	"github.com/tbtc-bot/terrabot-sdk"
 	"go.uber.org/zap"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -45,7 +46,7 @@ func NewFirestoreDB(serviceAccount string) *FirestoreDB {
 	}
 }
 
-func (fdb *FirestoreDB) UpdateStrategyStatusInFirestore(botID string, symbol string, positionSide terrabot.PositionSideType, strategyStatus terrabot.StrategyStatus) error {
+func (fdb *FirestoreDB) GetStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.StrategyStatus, error) {
 	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
 		Where(FIELD_BOT_ID, "==", botID).
 		Where(FIELD_SYMBOL, "==", symbol).
@@ -53,13 +54,37 @@ func (fdb *FirestoreDB) UpdateStrategyStatusInFirestore(botID string, symbol str
 		Documents(ctx)
 
 	doc, err := iter.Next()
+	if err == iterator.Done {
+		return nil, fmt.Errorf("strategy not found in firestore %s", err)
+	}
 	if err != nil {
-		return fmt.Errorf("failed to get strategy from firebase %s", err)
+		return nil, fmt.Errorf("failed to get strategy from firestore %s", err)
+	}
+
+	data := doc.Data()
+	statusString := fmt.Sprintf("%v", data["status"]) // convert interface to string
+	status := terrabot.StrategyStatus(statusString)
+	return &status, nil
+}
+
+func (fdb *FirestoreDB) UpdateStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType, strategyStatus terrabot.StrategyStatus) error {
+	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
+		Where(FIELD_BOT_ID, "==", botID).
+		Where(FIELD_SYMBOL, "==", symbol).
+		Where(FIELD_POSITION_SIDE, "==", positionSide).
+		Documents(ctx)
+
+	doc, err := iter.Next()
+	if err == iterator.Done {
+		return fmt.Errorf("strategy not found in firestore %s", err)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get strategy from firestore %s", err)
 	}
 
 	_, err = doc.Ref.Update(ctx, []firestore.Update{{Path: FIELD_STATUS, Value: strategyStatus}})
 	if err != nil {
-		return fmt.Errorf("failed to update strategy status in firebase %s", err)
+		return fmt.Errorf("failed to update strategy status in firestore %s", err)
 	}
 
 	return nil
