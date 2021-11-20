@@ -89,3 +89,66 @@ func (fdb *FirestoreDB) UpdateStrategyStatus(botID string, symbol string, positi
 
 	return nil
 }
+
+func (fdb *FirestoreDB) ReadStrategy(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.Strategy, error) {
+	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
+		Where(FIELD_BOT_ID, "==", botID).
+		Where(FIELD_SYMBOL, "==", symbol).
+		Where(FIELD_POSITION_SIDE, "==", positionSide).
+		Documents(ctx)
+
+	doc, err := iter.Next()
+	if err == iterator.Done {
+		return nil, fmt.Errorf("strategy not found in firestore %s", err)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get strategy from firestore %s", err)
+	}
+
+	data := doc.Data()
+	strategy := terrabot.Strategy{
+		Type:         terrabot.StrategyType(fmt.Sprintf("%v", data["typeStrategy"])),
+		Symbol:       fmt.Sprintf("%v", data["symbol"]),
+		PositionSide: terrabot.PositionSideType(fmt.Sprintf("%v", data["positionSide"])),
+		Status:       terrabot.StrategyStatus(fmt.Sprintf("%v", data["status"])),
+		Parameters: terrabot.StrategyParameters{
+			GridOrders:             interfaceToUint(data["gridOrders"]),
+			GridStep:               interfaceToFloat64(data["gridStep"]),
+			OrderBaseType:          terrabot.OrderBaseType(fmt.Sprintf("%v", data["orderBaseType"])),
+			StepFactor:             interfaceToFloat64(data["stepFactor"]),
+			OrderFactor:            interfaceToFloat64(data["orderFactor"]),
+			TakeStep:               interfaceToFloat64(data["takeStep"]),
+			TakeStepLimit:          interfaceToFloat64(data["takeStepLimit"]),
+			TakeStepLimitThreshold: interfaceToFloat64(data["takeStepLimitThreshold"]),
+			StopLoss:               interfaceToFloat64(data["stopLossOffset"]),
+			CallBackRate:           interfaceToFloat64(data["callBack"]),
+		},
+	}
+
+	return &strategy, nil
+}
+
+func interfaceToUint(n interface{}) uint {
+
+	x, ok := n.(int64)
+	if !ok {
+		// log error
+		return 0
+	}
+
+	return uint(x)
+}
+
+func interfaceToFloat64(n interface{}) float64 {
+	if n == nil {
+		// log error
+		return 0
+	}
+
+	x, ok := n.(float64)
+	if !ok {
+		x = float64(n.(int64))
+	}
+
+	return x
+}
