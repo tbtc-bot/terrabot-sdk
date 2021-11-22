@@ -80,13 +80,15 @@ type WsOrderTradeUpdate struct {
 // NEW EVENT DATA STRUCTURES
 
 type RmqProbeEvent struct {
-	UserId    string      `json:"userId"`
-	BotId     string      `json:"botId"`
-	AccessKey string      `json:"accessKey"`
-	SecretKey string      `json:"secretKey"`
-	EventType string      `json:"eventType"` //ACCOUNT_UPDATE or ORDER_UPDATE
-	EventTime string      `json:"eventTime"`
-	Data      interface{} `json:"data"`
+	UserId         string      `json:"userId"`
+	BotId          string      `json:"botId"`
+	AccessKey      string      `json:"accessKey"`
+	SecretKey      string      `json:"secretKey"`
+	Passphrase     string      `json:"passphrase,omitempty"`
+	SimulationMode bool        `json:"simulationMode,omitempty"`
+	EventType      string      `json:"eventType"` //ACCOUNT_UPDATE or ORDER_UPDATE
+	EventTime      string      `json:"eventTime"`
+	Data           interface{} `json:"data"`
 }
 
 type RmqAccountUpdateData struct {
