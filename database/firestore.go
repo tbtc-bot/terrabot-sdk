@@ -22,11 +22,11 @@ const (
 
 var ctx = context.Background()
 
-type FirestoreDB struct {
+type FirestoreHandler struct {
 	client *firestore.Client
 }
 
-func NewFirestoreDB(serviceAccount string) *FirestoreDB {
+func NewFirestoreHandler(serviceAccount string) *FirestoreHandler {
 	sa := option.WithCredentialsFile(serviceAccount)
 	app, err := firebase.NewApp(ctx, nil, sa)
 	if err != nil {
@@ -41,12 +41,12 @@ func NewFirestoreDB(serviceAccount string) *FirestoreDB {
 			zap.String("error", err.Error()),
 		)
 	}
-	return &FirestoreDB{
+	return &FirestoreHandler{
 		client: client,
 	}
 }
 
-func (fdb *FirestoreDB) GetStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.StrategyStatus, error) {
+func (fdb *FirestoreHandler) GetStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.StrategyStatus, error) {
 	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
 		Where(FIELD_BOT_ID, "==", botID).
 		Where(FIELD_SYMBOL, "==", symbol).
@@ -67,7 +67,7 @@ func (fdb *FirestoreDB) GetStrategyStatus(botID string, symbol string, positionS
 	return &status, nil
 }
 
-func (fdb *FirestoreDB) UpdateStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType, strategyStatus terrabot.StrategyStatus) error {
+func (fdb *FirestoreHandler) UpdateStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType, strategyStatus terrabot.StrategyStatus) error {
 	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
 		Where(FIELD_BOT_ID, "==", botID).
 		Where(FIELD_SYMBOL, "==", symbol).
@@ -90,7 +90,7 @@ func (fdb *FirestoreDB) UpdateStrategyStatus(botID string, symbol string, positi
 	return nil
 }
 
-func (fdb *FirestoreDB) ReadStrategy(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.Strategy, error) {
+func (fdb *FirestoreHandler) ReadStrategy(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.Strategy, error) {
 	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
 		Where(FIELD_BOT_ID, "==", botID).
 		Where(FIELD_SYMBOL, "==", symbol).
