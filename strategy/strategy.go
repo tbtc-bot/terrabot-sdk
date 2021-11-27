@@ -42,10 +42,10 @@ func NewStrategyHandler(ch *cache.RedisHandler, dh *database.FirestoreHandler, e
 }
 
 // Handle a Binance AccountUpdate event
-func (w *StrategyHandler) HandleAccountUpdate(ctx context.Context, session terrabot.Session, event *queue.WsAccountUpdate) {
+func (sh *StrategyHandler) HandleAccountUpdate(ctx context.Context, session terrabot.Session, event *queue.WsAccountUpdate) {
 
 	for _, wsPos := range event.Positions {
-		position := w.newPositionFromWsPosition(&wsPos) // convert from binance struct to Position struct
+		position := sh.newPositionFromWsPosition(&wsPos) // convert from binance struct to Position struct
 		if position != nil {
 			session.Strategy = terrabot.Strategy{
 				Symbol:       position.Symbol,
@@ -53,38 +53,38 @@ func (w *StrategyHandler) HandleAccountUpdate(ctx context.Context, session terra
 				Status:       "",
 				Parameters:   terrabot.StrategyParameters{},
 			}
-			if err := w.handlePositionUpdate(session, *position); err != nil {
-				w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+			if err := sh.handlePositionUpdate(session, *position); err != nil {
+				sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 					UserId:  session.UserId,
 					BotId:   session.BotId,
 					Message: err.Error(),
 				})
 
-				w.logger.Error("Could not handle position update",
+				sh.logger.Error("Could not handle position update",
 					zap.String("botId", session.BotId),
 					zap.String("error", err.Error()),
-					zap.String("key", w.ch.RedisKey(session)),
+					zap.String("key", sh.ch.RedisKey(session)),
 				)
 			}
 		}
 	}
 }
 
-func (w *StrategyHandler) handlePositionUpdate(session terrabot.Session, position terrabot.Position) (err error) {
+func (sh *StrategyHandler) handlePositionUpdate(session terrabot.Session, position terrabot.Position) (err error) {
 	time.Sleep(50 * time.Millisecond) // TODO change this
 
 	// acquire mutex lock
-	key := w.ch.RedisKey(session)
-	mu := w.ch.Client.GetNewMutex(key)
+	key := sh.ch.RedisKey(session)
+	mu := sh.ch.Client.GetNewMutex(key)
 	if mu == nil {
 		msg := fmt.Sprintf("handlePositionUpdate: mutex is nil with key %s", key)
-		w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 			UserId:  session.UserId,
 			BotId:   session.BotId,
 			Message: msg,
 		})
 
-		w.logger.Error("handlePositionUpdate: mutex is nil",
+		sh.logger.Error("handlePositionUpdate: mutex is nil",
 			zap.String("botId", session.BotId),
 			zap.String("error", err.Error()),
 			zap.String("key", key),
@@ -93,13 +93,13 @@ func (w *StrategyHandler) handlePositionUpdate(session terrabot.Session, positio
 
 		if err = mu.Lock(); err != nil {
 			msg := fmt.Sprintf("handlePositionUpdate: error acquiring lock with key %s: %s", key, err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  session.UserId,
 				BotId:   session.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("handlePositionUpdate: error acquiring lock",
+			sh.logger.Error("handlePositionUpdate: error acquiring lock",
 				zap.String("botId", session.BotId),
 				zap.String("error", err.Error()),
 				zap.String("key", key),
@@ -118,19 +118,19 @@ func (w *StrategyHandler) handlePositionUpdate(session terrabot.Session, positio
 		if err != nil {
 
 			msg := fmt.Sprintf("handlePositionUpdate: error releasing lock with key %s: %s", key, err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  session.UserId,
 				BotId:   session.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("handlePositionUpdate: error releasing lock",
+			sh.logger.Error("handlePositionUpdate: error releasing lock",
 				zap.String("botId", session.BotId),
 				zap.String("error", err.Error()),
 				zap.String("key", key),
 			)
 		} else if !ok {
-			w.logger.Error("handlePositionUpdate: error releasing lock",
+			sh.logger.Error("handlePositionUpdate: error releasing lock",
 				zap.String("botId", session.BotId),
 				zap.String("error", "!ok"),
 				zap.String("key", key),
@@ -139,7 +139,7 @@ func (w *StrategyHandler) handlePositionUpdate(session terrabot.Session, positio
 	}(err)
 
 	// get last position from redis
-	lastPosition, err := w.ch.ReadPosition(session)
+	lastPosition, err := sh.ch.ReadPosition(session)
 	if err != nil {
 		// if position is not found, it has been deleted by hard stop command
 		return nil
@@ -148,11 +148,11 @@ func (w *StrategyHandler) handlePositionUpdate(session terrabot.Session, positio
 	// compare new position with old position
 	if lastPosition.EntryPrice != position.EntryPrice || lastPosition.Size != position.Size {
 		// store new position
-		if err = w.ch.WritePosition(session, position); err != nil {
+		if err = sh.ch.WritePosition(session, position); err != nil {
 			return fmt.Errorf("could not store position with key %s: %s", key, err)
 		}
 
-		if err = w.ExecuteSession(session, position); err != nil {
+		if err = sh.ExecuteSession(session, position); err != nil {
 			return fmt.Errorf("could not execute session: %s", err)
 		}
 	}
@@ -160,14 +160,14 @@ func (w *StrategyHandler) handlePositionUpdate(session terrabot.Session, positio
 	return nil
 }
 
-func (w *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabot.Session, event *queue.WsOrderTradeUpdate) {
+func (sh *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabot.Session, event *queue.WsOrderTradeUpdate) {
 
 	session.Strategy = terrabot.Strategy{
 		Symbol:       event.Symbol,
 		PositionSide: terrabot.PositionSideType(event.PositionSide),
 	}
 
-	strategy, err := w.ReadStrategy(session)
+	strategy, err := sh.ReadStrategy(session)
 	if err != nil {
 
 		strategy = &terrabot.Strategy{
@@ -189,14 +189,14 @@ func (w *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabo
 	case "FILLED":
 		profit, err := strconv.ParseFloat(event.RealizedPnL, 64)
 		if err != nil {
-			w.logger.Error("could not parse string to float",
-				zap.String("key", w.ch.RedisKey(session)),
+			sh.logger.Error("could not parse string to float",
+				zap.String("key", sh.ch.RedisKey(session)),
 				zap.String("profit", event.RealizedPnL),
 			)
 		}
 
 		if profit != 0 {
-			lastGridReached := w.lastGridReached(session)
+			lastGridReached := sh.lastGridReached(session)
 
 			tp := queue.RmqTpEvent{
 				BotId:           session.BotId,
@@ -212,22 +212,22 @@ func (w *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabo
 				CurrentGridStep: lastGridReached,
 			}
 
-			w.th.SendTelegramTP(tp)
+			sh.th.SendTelegramTP(tp)
 
-			metadata, err := w.ch.ReadMetadata(session)
+			metadata, err := sh.ch.ReadMetadata(session)
 			if err == nil {
 				metadata.LastGridReached = 0
-				w.ch.WriteMetadata(session, *metadata)
+				sh.ch.WriteMetadata(session, *metadata)
 			}
 
 			// check if soft stop
-			strategy, err := w.ReadStrategy(session)
+			strategy, err := sh.ReadStrategy(session)
 			if err == nil {
 				if strategy.Status == terrabot.StatusSoftStop {
 					msg := fmt.Sprintf("SOFT STOP %s realized profit (%s/%s) %s USDT",
 						event.Symbol, lastGridReached, fmt.Sprint(strategy.Parameters.GridOrders), event.RealizedPnL)
 
-					w.th.SendTelegramMessage(queue.MsgInfo, queue.RmqMessageEvent{
+					sh.th.SendTelegramMessage(queue.MsgInfo, queue.RmqMessageEvent{
 						UserId:  session.UserId,
 						BotId:   session.BotId,
 						Message: msg,
@@ -237,11 +237,11 @@ func (w *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabo
 
 		} else {
 			// update last grid reached
-			metadata, err := w.ch.ReadMetadata(session)
+			metadata, err := sh.ch.ReadMetadata(session)
 			if err != nil {
 
 				if string(session.Strategy.PositionSide) != "BOTH" { // TODO change this
-					w.logger.Warn("Could not update last grid reached",
+					sh.logger.Warn("Could not update last grid reached",
 						zap.String("error", err.Error()))
 				}
 
@@ -253,7 +253,7 @@ func (w *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabo
 				return
 			}
 			metadata.LastGridReached = lastGridReached
-			w.ch.WriteMetadata(session, *metadata)
+			sh.ch.WriteMetadata(session, *metadata)
 
 			// set stop loss if last grid reached
 			if metadata.LastGridReached == int64(session.Strategy.Parameters.GridOrders) {
@@ -263,7 +263,7 @@ func (w *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabo
 				sym := session.Strategy.Symbol + "-" + fmt.Sprintf("%c", string(session.Strategy.PositionSide)[0])
 				msg := fmt.Sprintf("%s last grid reached at price %f USDT", sym, price) // TODO add current PNL and liquidation price
 
-				w.th.SendTelegramMessage(queue.MsgInfo, queue.RmqMessageEvent{
+				sh.th.SendTelegramMessage(queue.MsgInfo, queue.RmqMessageEvent{
 					UserId:  session.UserId,
 					BotId:   session.BotId,
 					Message: msg,
@@ -273,7 +273,7 @@ func (w *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabo
 
 	case "PARTIALLY_FILLED":
 		profit, _ := strconv.ParseFloat(event.RealizedPnL, 64)
-		lastGridReached := w.lastGridReached(session)
+		lastGridReached := sh.lastGridReached(session)
 		if profit != 0 {
 
 			tp := queue.RmqTpEvent{
@@ -290,21 +290,21 @@ func (w *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabo
 				CurrentGridStep: lastGridReached,
 			}
 
-			w.th.SendTelegramTP(tp)
+			sh.th.SendTelegramTP(tp)
 		}
 
 	default:
-		w.logger.Warn("Event type not recognized",
+		sh.logger.Warn("Event type not recognized",
 			zap.String("event", string(event.Status)))
 
 	}
 }
 
-func (w *StrategyHandler) newPositionFromWsPosition(p *queue.WsPosition) *terrabot.Position {
+func (sh *StrategyHandler) newPositionFromWsPosition(p *queue.WsPosition) *terrabot.Position {
 
 	amount, _ := strconv.ParseFloat(p.Amount, 64)
 	entryPrice, _ := strconv.ParseFloat(p.EntryPrice, 64)
-	markPrice, err := w.GetMarkPrice(p.Symbol)
+	markPrice, err := sh.GetMarkPrice(p.Symbol)
 	if err != nil {
 		// TODO change this
 		markPrice, _ = strconv.ParseFloat(p.MarkPrice, 64)
@@ -319,10 +319,10 @@ func (w *StrategyHandler) newPositionFromWsPosition(p *queue.WsPosition) *terrab
 	}
 }
 
-func (w *StrategyHandler) lastGridReached(session terrabot.Session) (lastGrid string) {
+func (sh *StrategyHandler) lastGridReached(session terrabot.Session) (lastGrid string) {
 	/* Get from Redis the last grid reached, in a string form, for the telegram notification. Use "-" if not found. */
 
-	metadata, err := w.ch.ReadMetadata(session)
+	metadata, err := sh.ch.ReadMetadata(session)
 	if err != nil {
 		lastGrid = "0"
 	} else {
@@ -331,34 +331,34 @@ func (w *StrategyHandler) lastGridReached(session terrabot.Session) (lastGrid st
 	return
 }
 
-func (w *StrategyHandler) ExecuteSession(session terrabot.Session, position terrabot.Position) (err error) {
+func (sh *StrategyHandler) ExecuteSession(session terrabot.Session, position terrabot.Position) (err error) {
 
-	strategy, err := w.ReadStrategy(session)
+	strategy, err := sh.ReadStrategy(session)
 	if err != nil {
 		return nil // ignore if strategy not found
 	}
 	session.Strategy = *strategy
 
 	if position.Size == 0 {
-		return w.StartStrategy(session)
+		return sh.StartStrategy(session)
 
 	} else {
 		// position size is not zero: set take profit
-		w.CancelLastTakeProfit(session)
+		sh.CancelLastTakeProfit(session)
 
 		// do nothing if the status is stop or hard stop
 		if session.Strategy.Status == terrabot.StatusStop || session.Strategy.Status == terrabot.StatusHardStop {
 			return nil
 		}
 
-		if err = w.SetTakeProfit(session, position); err != nil {
-			positionSize, _ := w.eh.GetPositionAmount(session, position.Symbol, position.PositionSide)
+		if err = sh.SetTakeProfit(session, position); err != nil {
+			positionSize, _ := sh.eh.GetPositionAmount(session, position.Symbol, position.PositionSide)
 
 			if positionSize == 0 {
-				return w.StartStrategy(session)
+				return sh.StartStrategy(session)
 			}
 
-			w.logger.Error("Error in set take profit",
+			sh.logger.Error("Error in set take profit",
 				zap.String("botId", session.BotId),
 				zap.String("symbol", session.Strategy.Symbol),
 				zap.String("positionSide", string(session.Strategy.PositionSide)),
@@ -368,9 +368,9 @@ func (w *StrategyHandler) ExecuteSession(session terrabot.Session, position terr
 			)
 
 			position.Size = math.Abs(positionSize)
-			if err = w.SetTakeProfit(session, position); err != nil {
-				msg := fmt.Sprintf("%s - could not place take profit order: %s", w.ch.RedisKey(session), err)
-				w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+			if err = sh.SetTakeProfit(session, position); err != nil {
+				msg := fmt.Sprintf("%s - could not place take profit order: %s", sh.ch.RedisKey(session), err)
+				sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 					UserId:  session.UserId,
 					BotId:   session.BotId,
 					Message: msg,
@@ -382,12 +382,12 @@ func (w *StrategyHandler) ExecuteSession(session terrabot.Session, position terr
 	return nil
 }
 
-func (w *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
+func (sh *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
 
 	// do nothing if status is not start
 	if session.Strategy.Status != terrabot.StatusStart {
-		w.ch.DeleteTakeProfit(session)
-		w.commandHardStop(session)
+		sh.ch.DeleteTakeProfit(session)
+		sh.commandHardStop(session)
 		return nil
 	}
 
@@ -396,12 +396,12 @@ func (w *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
 	if err != nil {
 		return fmt.Errorf("could not get base asset: %s", err)
 	}
-	balance, err := w.getAssetBalance(session, terrabot.Asset(asset))
+	balance, err := sh.getAssetBalance(session, terrabot.Asset(asset))
 	if err != nil {
 		return fmt.Errorf("could not get wallet balance: %s", err)
 	}
 
-	markPrice, err := w.GetMarkPrice(symbol)
+	markPrice, err := sh.GetMarkPrice(symbol)
 	if err != nil {
 		return fmt.Errorf("%s could not get mark price for symbol %s: %s", session.BotId, symbol, err)
 	}
@@ -420,17 +420,17 @@ func (w *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
 	}
 
 	// check minimum order
-	quantityPrecision := w.ch.ReadSymbolQtyPrecision(symbol)
+	quantityPrecision := sh.ch.ReadSymbolQtyPrecision(symbol)
 	s0 = util.RoundFloatWithPrecision(s0, quantityPrecision) // initial order size
 	s0usd := s0 * markPrice                                  // initial order size in dollars
 	if s0usd < 5 {
-		w.commandHardStop(session)
+		sh.commandHardStop(session)
 		return fmt.Errorf("initial order after rounding is %f %s, but it must be at least 5 %s", s0usd, asset, asset)
 	}
 
-	minQty := w.ch.ReadSymbolMinQty(symbol)
+	minQty := sh.ch.ReadSymbolMinQty(symbol)
 	if s0 < minQty {
-		w.commandHardStop(session)
+		sh.commandHardStop(session)
 		return fmt.Errorf("initial order after rounding is %f %s, but it must be at least %f %s", s0usd, symbol, minQty, symbol)
 	}
 	////////////////////////////////////////////////////////////////////////
@@ -441,25 +441,25 @@ func (w *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
 
 	case terrabot.PositionSideLong:
 		order = terrabot.NewOrderMarket(symbol, terrabot.SideBuy, terrabot.PositionSideLong, s0)
-		if err = w.addMarketOrder(session, order); err != nil {
+		if err = sh.addMarketOrder(session, order); err != nil {
 			return fmt.Errorf("%s could not add market order %s: %s", session.BotId, order.String(), err)
 		}
 
 	case terrabot.PositionSideShort:
 		order = terrabot.NewOrderMarket(symbol, terrabot.SideSell, terrabot.PositionSideShort, s0)
-		if err = w.addMarketOrder(session, order); err != nil {
+		if err = sh.addMarketOrder(session, order); err != nil {
 			return fmt.Errorf("%s could not add market order %s: %s", session.BotId, order.String(), err)
 		}
 	}
 
 	// this is for TakeStepLimit
-	if err := w.StoreGridSize(session, s0); err != nil {
-		w.logger.Warn("Could not store grid size in redis",
+	if err := sh.StoreGridSize(session, s0); err != nil {
+		sh.logger.Warn("Could not store grid size in redis",
 			zap.String("botId", session.BotId),
 			zap.String("error", err.Error()),
 		)
 		msg := fmt.Sprintf("Could not store grid size in redis: %s", err)
-		w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 			UserId:  session.UserId,
 			BotId:   session.BotId,
 			Message: msg,
@@ -467,23 +467,23 @@ func (w *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
 	}
 
 	// create grid
-	if err = w.CreateGrid(session, balance, markPrice); err != nil {
+	if err = sh.CreateGrid(session, balance, markPrice); err != nil {
 		return fmt.Errorf("could not create grid: %s", err)
 	}
 
 	return nil
 }
 
-func (w *StrategyHandler) StoreGridSize(session terrabot.Session, s0 float64) error {
+func (sh *StrategyHandler) StoreGridSize(session terrabot.Session, s0 float64) error {
 	GridOrders := float64(session.Strategy.Parameters.GridOrders)
 	OrderFactor := session.Strategy.Parameters.OrderFactor
 	gridSize := s0 * math.Pow(OrderFactor, GridOrders)
-	return w.ch.WriteGridSize(session, gridSize)
+	return sh.ch.WriteGridSize(session, gridSize)
 }
 
-func (w *StrategyHandler) CreateGrid(session terrabot.Session, balance float64, startPrice float64) error {
+func (sh *StrategyHandler) CreateGrid(session terrabot.Session, balance float64, startPrice float64) error {
 
-	if err := w.CancelGrid(session); err != nil {
+	if err := sh.CancelGrid(session); err != nil {
 		return fmt.Errorf("could not cancel grid: %s", err)
 	}
 
@@ -497,15 +497,15 @@ func (w *StrategyHandler) CreateGrid(session terrabot.Session, balance float64, 
 
 	// execute orders
 	for _, order := range orders {
-		if err := w.addGridOrder(session, order); err != nil {
+		if err := sh.addGridOrder(session, order); err != nil {
 			msg := fmt.Sprintf("could not place grid order %s: %s", order.String(), err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  session.UserId,
 				BotId:   session.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("Could not place grid order",
+			sh.logger.Error("Could not place grid order",
 				zap.String("botId", session.BotId),
 				zap.String("error", err.Error()),
 				zap.String("order", order.String()),
@@ -520,43 +520,43 @@ func (w *StrategyHandler) CreateGrid(session terrabot.Session, balance float64, 
 	}
 
 	// update only mapIDtoGridNumber, keep last grid reached for tp message
-	metadata, err := w.ch.ReadMetadata(session)
+	metadata, err := sh.ch.ReadMetadata(session)
 	if err != nil {
 		metadata = &terrabot.Metadata{
 			LastGridReached: 0,
 		}
 	}
 	metadata.MapIDtoGridNumber = mapIDtoGridNumber
-	w.ch.WriteMetadata(session, *metadata)
+	sh.ch.WriteMetadata(session, *metadata)
 	return nil
 }
 
-func (w *StrategyHandler) CancelGrid(session terrabot.Session) error {
+func (sh *StrategyHandler) CancelGrid(session terrabot.Session) error {
 
-	openOrders, err := w.getOpenOrders(session)
+	openOrders, err := sh.getOpenOrders(session)
 	if err != nil {
 		return fmt.Errorf("could not get open orders: %s", err)
 	}
 
-	if err := w.cancelMultipleOrders(session, openOrders); err != nil {
+	if err := sh.cancelMultipleOrders(session, openOrders); err != nil {
 		return err
 	}
 
-	w.CancelLastTakeProfit(session)
+	sh.CancelLastTakeProfit(session)
 	return nil
 }
 
-func (w *StrategyHandler) SetTakeProfit(session terrabot.Session, position terrabot.Position) (err error) {
-	w.CancelLastTakeProfit(session)
+func (sh *StrategyHandler) SetTakeProfit(session terrabot.Session, position terrabot.Position) (err error) {
+	sh.CancelLastTakeProfit(session)
 
-	gridSize, err := w.ch.ReadGridSize(session)
+	gridSize, err := sh.ch.ReadGridSize(session)
 	if err != nil {
-		w.logger.Error("Could not get grid size from redis",
+		sh.logger.Error("Could not get grid size from redis",
 			zap.String("botId", session.BotId),
 			zap.String("error", err.Error()),
 		)
 		msg := fmt.Sprintf("Could not get grid size from redis: %s", err)
-		w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 			UserId:  session.UserId,
 			BotId:   session.BotId,
 			Message: msg,
@@ -568,12 +568,12 @@ func (w *StrategyHandler) SetTakeProfit(session terrabot.Session, position terra
 		return fmt.Errorf("could not create take profit order: %s", err)
 	}
 
-	if err = w.addTakeProfitOrder(session, order); err != nil {
+	if err = sh.addTakeProfitOrder(session, order); err != nil {
 		return fmt.Errorf("could not place take profit order %s: %s", order.String(), err)
 	}
 
-	if err := w.ch.WriteTakeProfit(session, order.ID); err != nil {
-		w.logger.Error("Could not store take profit order in Redis",
+	if err := sh.ch.WriteTakeProfit(session, order.ID); err != nil {
+		sh.logger.Error("Could not store take profit order in Redis",
 			zap.String("botId", session.BotId),
 			zap.String("error", err.Error()),
 			zap.String("orderId", order.String()))
@@ -581,18 +581,18 @@ func (w *StrategyHandler) SetTakeProfit(session terrabot.Session, position terra
 	return nil
 }
 
-func (w *StrategyHandler) CancelLastTakeProfit(session terrabot.Session) {
-	id, err := w.ch.ReadTakeProfit(session)
+func (sh *StrategyHandler) CancelLastTakeProfit(session terrabot.Session) {
+	id, err := sh.ch.ReadTakeProfit(session)
 	if err != nil {
 		return
 	}
-	if err := w.eh.CancelOrderRetry(session, session.Strategy.Symbol, id, ATTEMPTS, SLEEP); err == nil {
-		w.ch.DeleteTakeProfit(session)
+	if err := sh.eh.CancelOrderRetry(session, session.Strategy.Symbol, id, ATTEMPTS, SLEEP); err == nil {
+		sh.ch.DeleteTakeProfit(session)
 	}
 }
 
-func (w *StrategyHandler) ClosePosition(session terrabot.Session) error {
-	positionAmount, err := w.eh.GetPositionAmount(session, session.Strategy.Symbol, session.Strategy.PositionSide)
+func (sh *StrategyHandler) ClosePosition(session terrabot.Session) error {
+	positionAmount, err := sh.eh.GetPositionAmount(session, session.Strategy.Symbol, session.Strategy.PositionSide)
 	if err != nil {
 		return fmt.Errorf("could not get position amount: %s", err)
 	}
@@ -613,41 +613,41 @@ func (w *StrategyHandler) ClosePosition(session terrabot.Session) error {
 	}
 
 	order := terrabot.NewOrderMarket(session.Strategy.Symbol, orderSide, session.Strategy.PositionSide, math.Abs(positionAmount))
-	if err = w.addMarketOrder(session, order); err != nil {
+	if err = sh.addMarketOrder(session, order); err != nil {
 		return fmt.Errorf("%s could not add market order %s: %s", session.BotId, order.String(), err)
 	}
 	// TODO delete position key from redis
 	return nil
 }
 
-func (w *StrategyHandler) GetMarkPrice(symbol string) (float64, error) {
-	markPrice, err := w.ch.ReadMarkPrice(symbol)
+func (sh *StrategyHandler) GetMarkPrice(symbol string) (float64, error) {
+	markPrice, err := sh.ch.ReadMarkPrice(symbol)
 	if err != nil {
-		w.logger.Warn("Could not get mark price from Redis",
+		sh.logger.Warn("Could not get mark price from Redis",
 			zap.String("error", err.Error()),
 			zap.String("symbol", symbol))
-		return w.eh.GetMarkPriceRetry(symbol, ATTEMPTS, SLEEP)
+		return sh.eh.GetMarkPriceRetry(symbol, ATTEMPTS, SLEEP)
 	}
 	return markPrice, nil
 }
 
-func (w *StrategyHandler) ReadStrategy(session terrabot.Session) (strategy *terrabot.Strategy, err error) {
+func (sh *StrategyHandler) ReadStrategy(session terrabot.Session) (strategy *terrabot.Strategy, err error) {
 
 	// read from redis first
-	strategy, err = w.ch.ReadStrategy(session)
+	strategy, err = sh.ch.ReadStrategy(session)
 	if err == nil {
 		return strategy, nil
 	}
 
 	// in case of error check on firestore
-	strategy, err = w.dh.ReadStrategy(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide)
+	strategy, err = sh.dh.ReadStrategy(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide)
 	if err != nil {
-		return nil, fmt.Errorf("could not get strategy from redis nor firestore with key %s: %s", w.ch.RedisKey(session), err)
+		return nil, fmt.Errorf("could not get strategy from redis nor firestore with key %s: %s", sh.ch.RedisKey(session), err)
 	}
 
 	// store on redis
 	session.Strategy = *strategy
-	w.ch.WriteStrategy(session)
+	sh.ch.WriteStrategy(session)
 
 	return strategy, nil
 }

@@ -10,16 +10,16 @@ type TelegramHandler struct {
 	Logger *zap.Logger
 }
 
-func (w *TelegramHandler) SendTelegramMessage(msgType queue.MessageType, body queue.RmqMessageEvent) {
+func (th *TelegramHandler) SendTelegramMessage(msgType queue.MessageType, body queue.RmqMessageEvent) {
 
-	if err := w.Qh.PublishTelegramMessage(body, msgType); err != nil {
-		w.Logger.Error(err.Error())
+	if err := th.Qh.PublishTelegramMessage(body, msgType); err != nil {
+		th.Logger.Error(err.Error())
 	}
 }
 
-func (w *TelegramHandler) SendTelegramTP(body queue.RmqTpEvent) {
+func (th *TelegramHandler) SendTelegramTP(body queue.RmqTpEvent) {
 
-	if err := w.Qh.PublishTelegramTp(body); err != nil {
-		w.Logger.Error(err.Error())
+	if err := th.Qh.PublishTelegramTp(body); err != nil {
+		th.Logger.Error(err.Error())
 	}
 }

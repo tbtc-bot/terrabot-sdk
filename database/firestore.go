@@ -46,8 +46,8 @@ func NewFirestoreHandler(serviceAccount string) *FirestoreHandler {
 	}
 }
 
-func (fdb *FirestoreHandler) GetStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.StrategyStatus, error) {
-	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
+func (fh *FirestoreHandler) GetStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.StrategyStatus, error) {
+	iter := fh.client.Collection(COLLECTION_STRATEGIES).
 		Where(FIELD_BOT_ID, "==", botID).
 		Where(FIELD_SYMBOL, "==", symbol).
 		Where(FIELD_POSITION_SIDE, "==", positionSide).
@@ -67,8 +67,8 @@ func (fdb *FirestoreHandler) GetStrategyStatus(botID string, symbol string, posi
 	return &status, nil
 }
 
-func (fdb *FirestoreHandler) UpdateStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType, strategyStatus terrabot.StrategyStatus) error {
-	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
+func (fh *FirestoreHandler) UpdateStrategyStatus(botID string, symbol string, positionSide terrabot.PositionSideType, strategyStatus terrabot.StrategyStatus) error {
+	iter := fh.client.Collection(COLLECTION_STRATEGIES).
 		Where(FIELD_BOT_ID, "==", botID).
 		Where(FIELD_SYMBOL, "==", symbol).
 		Where(FIELD_POSITION_SIDE, "==", positionSide).
@@ -90,8 +90,8 @@ func (fdb *FirestoreHandler) UpdateStrategyStatus(botID string, symbol string, p
 	return nil
 }
 
-func (fdb *FirestoreHandler) ReadStrategy(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.Strategy, error) {
-	iter := fdb.client.Collection(COLLECTION_STRATEGIES).
+func (fh *FirestoreHandler) ReadStrategy(botID string, symbol string, positionSide terrabot.PositionSideType) (*terrabot.Strategy, error) {
+	iter := fh.client.Collection(COLLECTION_STRATEGIES).
 		Where(FIELD_BOT_ID, "==", botID).
 		Where(FIELD_SYMBOL, "==", symbol).
 		Where(FIELD_POSITION_SIDE, "==", positionSide).

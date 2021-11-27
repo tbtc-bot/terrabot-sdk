@@ -10,38 +10,38 @@ import (
 	"go.uber.org/zap"
 )
 
-func (w *StrategyHandler) ParseCommandEvent(eventRaw []byte) {
+func (sh *StrategyHandler) ParseCommandEvent(eventRaw []byte) {
 	var err error
 
 	var event queue.RmqApiServerCommandEvent
 	if err = json.Unmarshal(eventRaw, &event); err != nil {
 
-		w.logger.Error("Error during unmarshaling of command event", zap.String("error", err.Error()))
+		sh.logger.Error("Error during unmarshaling of command event", zap.String("error", err.Error()))
 
 		return
 	}
 
-	w.logger.Info("Received command event", zap.String("command", event.Command))
+	sh.logger.Info("Received command event", zap.String("command", event.Command))
 
 	// create new session
 	strategyTmp := terrabot.NewStrategy(terrabot.StrategyDummy, event.Symbol, terrabot.PositionSideType(event.PositionSide), terrabot.StrategyParameters{}) // dummy strategy without parameters
 	session := terrabot.NewSession(event.BotId, event.UserId, event.AccessKey, event.SecretKey, *strategyTmp)
 
 	// acquire mutex lock
-	key := w.ch.RedisKey(*session)
+	key := sh.ch.RedisKey(*session)
 	var errLock error
 	time.Sleep(50 * time.Millisecond) // TODO change this
 
-	mu := w.ch.Client.GetNewMutex(key)
+	mu := sh.ch.Client.GetNewMutex(key)
 	if mu == nil {
 		msg := fmt.Sprintf("parseCommandEvent: mutex is nil with key %s", key)
-		w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 			UserId:  session.UserId,
 			BotId:   session.BotId,
 			Message: msg,
 		})
 
-		w.logger.Error("parseCommandEvent: mutex is nil",
+		sh.logger.Error("parseCommandEvent: mutex is nil",
 			zap.String("botId", session.BotId),
 			zap.String("error", err.Error()),
 			zap.String("key", key),
@@ -50,13 +50,13 @@ func (w *StrategyHandler) ParseCommandEvent(eventRaw []byte) {
 
 		if err := mu.Lock(); err != nil {
 			msg := fmt.Sprintf("parseCommandEvent %s: error acquiring lock with key %s: %s", event.Command, key, err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  event.UserId,
 				BotId:   event.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("parseCommandEvent: error acquiring lock",
+			sh.logger.Error("parseCommandEvent: error acquiring lock",
 				zap.String("error", err.Error()),
 				zap.String("botId", session.BotId),
 				zap.String("command", event.Command),
@@ -74,20 +74,20 @@ func (w *StrategyHandler) ParseCommandEvent(eventRaw []byte) {
 		ok, err := mu.Unlock()
 		if err != nil {
 			msg := fmt.Sprintf("parseCommandEvent %s: error releasing lock with key %s: %s", event.Command, key, err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  event.UserId,
 				BotId:   event.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("parseCommandEvent: error releasing lock",
+			sh.logger.Error("parseCommandEvent: error releasing lock",
 				zap.String("error", err.Error()),
 				zap.String("botId", session.BotId),
 				zap.String("command", event.Command),
 				zap.String("key", key),
 			)
 		} else if !ok {
-			w.logger.Error("parseCommandEvent: error releasing lock",
+			sh.logger.Error("parseCommandEvent: error releasing lock",
 				zap.String("error", "!ok"),
 				zap.String("botId", session.BotId),
 				zap.String("command", event.Command),
@@ -97,7 +97,7 @@ func (w *StrategyHandler) ParseCommandEvent(eventRaw []byte) {
 	}(errLock)
 
 	// get strategy parameters
-	strategy, err := w.ReadStrategy(*session)
+	strategy, err := sh.ReadStrategy(*session)
 	if err != nil {
 		return
 	}
@@ -108,67 +108,67 @@ func (w *StrategyHandler) ParseCommandEvent(eventRaw []byte) {
 		//TODO return if position is not 0
 
 		// get pars from redis and declare strategy
-		if err = w.commandStart(*session); err != nil {
-			msg := fmt.Sprintf("Could not START strategy with key %s: %s", w.ch.RedisKey(*session), err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		if err = sh.commandStart(*session); err != nil {
+			msg := fmt.Sprintf("Could not START strategy with key %s: %s", sh.ch.RedisKey(*session), err)
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  event.UserId,
 				BotId:   event.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("Could not START strategy",
+			sh.logger.Error("Could not START strategy",
 				zap.String("error", err.Error()),
 				zap.String("command", "start"),
 				zap.String("key", key))
 
 		}
 	case "stop":
-		if err = w.commandStop(*session); err != nil {
-			msg := fmt.Sprintf("Could not STOP strategy with key %s: %s", w.ch.RedisKey(*session), err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		if err = sh.commandStop(*session); err != nil {
+			msg := fmt.Sprintf("Could not STOP strategy with key %s: %s", sh.ch.RedisKey(*session), err)
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  event.UserId,
 				BotId:   event.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("Could not STOP strategy",
+			sh.logger.Error("Could not STOP strategy",
 				zap.String("error", err.Error()),
 				zap.String("command", "stop"),
 				zap.String("key", key))
 
 		}
 	case "hardStop":
-		if err = w.commandHardStop(*session); err != nil {
-			msg := fmt.Sprintf("Could not HARD_STOP strategy with key %s: %s", w.ch.RedisKey(*session), err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		if err = sh.commandHardStop(*session); err != nil {
+			msg := fmt.Sprintf("Could not HARD_STOP strategy with key %s: %s", sh.ch.RedisKey(*session), err)
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  event.UserId,
 				BotId:   event.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("Could not HARD_STOP strategy",
+			sh.logger.Error("Could not HARD_STOP strategy",
 				zap.String("error", err.Error()),
 				zap.String("command", "hardStop"),
 				zap.String("key", key))
 
 		}
 	case "softStop":
-		if err = w.commandSoftStop(*session); err != nil {
-			msg := fmt.Sprintf("Could not SOFT_STOP strategy with key %s: %s", w.ch.RedisKey(*session), err)
-			w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		if err = sh.commandSoftStop(*session); err != nil {
+			msg := fmt.Sprintf("Could not SOFT_STOP strategy with key %s: %s", sh.ch.RedisKey(*session), err)
+			sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 				UserId:  event.UserId,
 				BotId:   event.BotId,
 				Message: msg,
 			})
 
-			w.logger.Error("Could not SOFT_STOP strategy",
+			sh.logger.Error("Could not SOFT_STOP strategy",
 				zap.String("error", err.Error()),
 				zap.String("command", "softStop"),
 				zap.String("key", key))
 		}
 	default:
 		msg := fmt.Sprintf("Event command not recognized: %s", event.Command)
-		w.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
+		sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 			UserId:  event.UserId,
 			BotId:   event.BotId,
 			Message: msg,
@@ -176,110 +176,110 @@ func (w *StrategyHandler) ParseCommandEvent(eventRaw []byte) {
 	}
 }
 
-func (w *StrategyHandler) commandStart(session terrabot.Session) (err error) {
+func (sh *StrategyHandler) commandStart(session terrabot.Session) (err error) {
 	lastStatus := session.Strategy.Status
 
 	session.Strategy.Status = terrabot.StatusStart
-	if err := w.ch.WriteStrategy(session); err != nil {
-		return fmt.Errorf("could not store strategy with key %s: %s", w.ch.RedisKey(session), err)
+	if err := sh.ch.WriteStrategy(session); err != nil {
+		return fmt.Errorf("could not store strategy with key %s: %s", sh.ch.RedisKey(session), err)
 	}
 
 	// if the status is soft stop, cancel it and put it to start
 	if lastStatus == terrabot.StatusSoftStop {
 
-		if err := w.ch.WriteStrategy(session); err != nil {
-			return fmt.Errorf("could not store strategy with key %s: %s", w.ch.RedisKey(session), err)
+		if err := sh.ch.WriteStrategy(session); err != nil {
+			return fmt.Errorf("could not store strategy with key %s: %s", sh.ch.RedisKey(session), err)
 		}
 
-		return w.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusStart)
+		return sh.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusStart)
 
 	} else {
 
 		// update position
 		position := terrabot.Position{Symbol: session.Strategy.Symbol, PositionSide: session.Strategy.PositionSide, EntryPrice: 0, Size: 0, MarkPrice: 0}
-		if err = w.ch.WritePosition(session, position); err != nil {
-			return fmt.Errorf("could not store position in redis with key %s: %s", w.ch.RedisKey(session), err)
+		if err = sh.ch.WritePosition(session, position); err != nil {
+			return fmt.Errorf("could not store position in redis with key %s: %s", sh.ch.RedisKey(session), err)
 		}
 
 		// update open orders
-		if err = w.ch.WriteOpenOrders(session, terrabot.OpenOrders{}); err != nil {
-			return fmt.Errorf("could not store open orders in redis with key %s: %s", w.ch.RedisKey(session), err)
+		if err = sh.ch.WriteOpenOrders(session, terrabot.OpenOrders{}); err != nil {
+			return fmt.Errorf("could not store open orders in redis with key %s: %s", sh.ch.RedisKey(session), err)
 		}
 
-		err = w.StartStrategy(session)
+		err = sh.StartStrategy(session)
 		if err != nil {
 			return err
 		}
 
-		return w.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusStart)
+		return sh.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusStart)
 	}
 }
 
-func (w *StrategyHandler) commandStop(session terrabot.Session) error {
+func (sh *StrategyHandler) commandStop(session terrabot.Session) error {
 	session.Strategy.Status = terrabot.StatusStop
 
-	if err := w.ch.WriteStrategy(session); err != nil {
-		return fmt.Errorf("could not store strategy with key %s: %s", w.ch.RedisKey(session), err)
+	if err := sh.ch.WriteStrategy(session); err != nil {
+		return fmt.Errorf("could not store strategy with key %s: %s", sh.ch.RedisKey(session), err)
 	}
 
-	if err := w.cancelAllOpenOrders(session); err != nil {
+	if err := sh.cancelAllOpenOrders(session); err != nil {
 		return fmt.Errorf("could not cancel open orders: %s", err)
 	}
 
-	return w.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusStop)
+	return sh.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusStop)
 }
 
-func (w *StrategyHandler) commandHardStop(session terrabot.Session) error {
+func (sh *StrategyHandler) commandHardStop(session terrabot.Session) error {
 	session.Strategy.Status = terrabot.StatusHardStop
 
-	if err := w.ch.WriteStrategy(session); err != nil {
-		return fmt.Errorf("could not store strategy with key %s: %s", w.ch.RedisKey(session), err)
+	if err := sh.ch.WriteStrategy(session); err != nil {
+		return fmt.Errorf("could not store strategy with key %s: %s", sh.ch.RedisKey(session), err)
 	}
 
-	if err := w.cancelAllOpenOrders(session); err != nil {
+	if err := sh.cancelAllOpenOrders(session); err != nil {
 		return fmt.Errorf("could not cancel open orders: %s", err)
 	}
 
-	if err := w.ClosePosition(session); err != nil {
+	if err := sh.ClosePosition(session); err != nil {
 		return fmt.Errorf("could not close position: %s", err)
 	}
 
-	err := w.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusHardStop)
+	err := sh.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusHardStop)
 	if err != nil {
 		return err
 	}
 
-	w.ch.DeleteAllKeys(session)
+	sh.ch.DeleteAllKeys(session)
 	return nil
 }
 
-func (w *StrategyHandler) commandSoftStop(session terrabot.Session) error {
+func (sh *StrategyHandler) commandSoftStop(session terrabot.Session) error {
 	if session.Strategy.Status == terrabot.StatusStart {
 		session.Strategy.Status = terrabot.StatusSoftStop
 	} else {
 		return fmt.Errorf("status is already %s", session.Strategy.Status)
 	}
 
-	key := w.ch.RedisKey(session)
-	if err := w.ch.WriteStrategy(session); err != nil {
+	key := sh.ch.RedisKey(session)
+	if err := sh.ch.WriteStrategy(session); err != nil {
 		return fmt.Errorf("could not store strategy with key %s: %s", key, err)
 	}
 
-	return w.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusSoftStop)
+	return sh.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusSoftStop)
 }
 
-func (w *StrategyHandler) cancelAllOpenOrders(session terrabot.Session) error {
+func (sh *StrategyHandler) cancelAllOpenOrders(session terrabot.Session) error {
 
-	openOrders, err := w.getOpenOrders(session)
+	openOrders, err := sh.getOpenOrders(session)
 	if err != nil {
 		return fmt.Errorf("could not cancel open orders - could not get open orders: %s", err)
 	}
 
-	if err := w.cancelMultipleOrders(session, openOrders); err != nil {
+	if err := sh.cancelMultipleOrders(session, openOrders); err != nil {
 
-		w.logger.Error("Could not cancel open orders",
+		sh.logger.Error("Could not cancel open orders",
 			zap.String("error", err.Error()),
-			zap.String("key", w.ch.RedisKey(session)),
+			zap.String("key", sh.ch.RedisKey(session)),
 			zap.String("open orders list", fmt.Sprint(openOrders)),
 		)
 
