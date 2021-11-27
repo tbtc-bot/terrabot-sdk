@@ -54,6 +54,7 @@ func (sh *StrategyHandler) HandleAccountUpdate(ctx context.Context, session terr
 				Parameters:   terrabot.StrategyParameters{},
 			}
 			if err := sh.handlePositionUpdate(session, *position); err != nil {
+
 				sh.th.SendTelegramMessage(queue.MsgError, queue.RmqMessageEvent{
 					UserId:  session.UserId,
 					BotId:   session.BotId,
@@ -153,7 +154,7 @@ func (sh *StrategyHandler) handlePositionUpdate(session terrabot.Session, positi
 		}
 
 		if err = sh.ExecuteSession(session, position); err != nil {
-			return fmt.Errorf("could not execute session: %s", err)
+			return fmt.Errorf("could not execute session with key %s: %s", key, err)
 		}
 	}
 
