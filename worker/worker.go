@@ -104,8 +104,6 @@ func NewWorker(exchange string, exchangeHandler exchange.ExchangeHandler, logger
 	if worker.tracing {
 		logger.Info("Tracing activated")
 		setupTracing(podName, logger)
-	} else {
-		logger.Info("Tracing NOT activated")
 	}
 
 	return worker
@@ -127,8 +125,6 @@ func (w *Worker) Start() {
 		w.Logger.Fatal("Cannot listen to Commands queue",
 			zap.String("error", err.Error()))
 	}
-
-	w.Logger.Info("Worker starts")
 }
 
 // Parse the event from the exchange
