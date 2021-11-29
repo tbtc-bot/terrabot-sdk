@@ -345,10 +345,10 @@ func (sh *StrategyHandler) ExecuteSession(session terrabot.Session, position ter
 
 	} else {
 		// position size is not zero: set take profit
-		sh.CancelLastTakeProfit(session)
 
 		// do nothing if the status is stop or hard stop
 		if session.Strategy.Status == terrabot.StatusStop || session.Strategy.Status == terrabot.StatusHardStop {
+			sh.CancelLastTakeProfit(session) // if there is still a tp order
 			return nil
 		}
 
@@ -485,7 +485,13 @@ func (sh *StrategyHandler) StoreGridSize(session terrabot.Session, s0 float64) e
 func (sh *StrategyHandler) CreateGrid(session terrabot.Session, balance float64, startPrice float64) error {
 
 	if err := sh.CancelGrid(session); err != nil {
-		return fmt.Errorf("could not cancel grid: %s", err)
+
+		msg := fmt.Sprintf("WARNING: %s %s could not cancel grid. Make sure there is not a double grid.", session.Strategy.Symbol, session.Strategy.PositionSide)
+		sh.th.SendTelegramMessage(queue.MsgWarning, queue.RmqMessageEvent{
+			UserId:  session.UserId,
+			BotId:   session.BotId,
+			Message: msg,
+		})
 	}
 
 	// create orders
@@ -539,12 +545,7 @@ func (sh *StrategyHandler) CancelGrid(session terrabot.Session) error {
 		return fmt.Errorf("could not get open orders: %s", err)
 	}
 
-	if err := sh.cancelMultipleOrders(session, openOrders); err != nil {
-		return err
-	}
-
-	sh.CancelLastTakeProfit(session)
-	return nil
+	return sh.cancelMultipleOrders(session, openOrders)
 }
 
 func (sh *StrategyHandler) SetTakeProfit(session terrabot.Session, position terrabot.Position) (err error) {
@@ -582,14 +583,17 @@ func (sh *StrategyHandler) SetTakeProfit(session terrabot.Session, position terr
 	return nil
 }
 
-func (sh *StrategyHandler) CancelLastTakeProfit(session terrabot.Session) {
+func (sh *StrategyHandler) CancelLastTakeProfit(session terrabot.Session) error {
 	id, err := sh.ch.ReadTakeProfit(session)
 	if err != nil {
-		return
+		return fmt.Errorf("take profit not found; %s", err)
 	}
-	if err := sh.eh.CancelOrderRetry(session, session.Strategy.Symbol, id, ATTEMPTS, SLEEP); err == nil {
-		sh.ch.DeleteTakeProfit(session)
+
+	if err := sh.eh.CancelOrderRetry(session, session.Strategy.Symbol, id, ATTEMPTS, SLEEP); err != nil {
+		return err
 	}
+
+	return sh.ch.DeleteTakeProfit(session)
 }
 
 func (sh *StrategyHandler) ClosePosition(session terrabot.Session) error {
