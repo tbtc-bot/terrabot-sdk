@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type ExchangeHandler interface {
+type ExchangeConnector interface {
 	GetMarkPrice(symbol string) (float64, error)
 	GetMarkPriceRetry(symbol string, attempts int, sleep time.Duration) (price float64, err error)
 

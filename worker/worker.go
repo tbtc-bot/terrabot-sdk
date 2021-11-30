@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/tbtc-bot/terrabot-sdk"
 	"github.com/tbtc-bot/terrabot-sdk/cache"
-	"github.com/tbtc-bot/terrabot-sdk/config"
 	"github.com/tbtc-bot/terrabot-sdk/database"
 	"github.com/tbtc-bot/terrabot-sdk/exchange"
 	"github.com/tbtc-bot/terrabot-sdk/queue"
@@ -32,8 +31,8 @@ type Worker struct {
 	qh *queue.QueueHandler
 	ch *cache.RedisHandler
 	dh *database.FirestoreHandler
-	eh exchange.ExchangeHandler
-	sh *strategy.StrategyHandler
+	eh exchange.ExchangeConnector
+	sh *strategy.Strategy
 	th *telegram.TelegramHandler
 
 	Logger *zap.Logger
@@ -47,38 +46,21 @@ type Worker struct {
 }
 
 // Build a new worker instance
-func NewWorker(exchange string, exchangeHandler exchange.ExchangeHandler, logger *zap.Logger) *Worker {
-
-	// Set default values
-	if err := config.SetDefaultValues(); err != nil {
-		logger.Warn("Could not load config file" + err.Error())
-	}
-
-	podName := viper.GetString("POD_NAME")
-
-	// rabbit
-	rabbitCfg := getRabbitCfg(podName)
-	queueHandler, err := queue.NewQueueHandler(rabbitCfg)
-	if err != nil {
-		logger.Fatal("Failed to connect to RabbitMQ: " + err.Error())
-	}
-
-	// redis
-	redisAddress := viper.GetString("redisHostnames")
-	redisPassword := viper.GetString("redisPassword")
-	cacheHandler := &cache.RedisHandler{
-		Client:   cache.NewRedisDB(redisAddress, redisPassword),
-		Logger:   logger,
-		Exchange: exchange,
-	}
-
-	// firestore
-	gcpFirebaseCredPath := viper.GetString("gcpFirebaseAdminServiceAccount")
-	databaseHandler := database.NewFirestoreHandler(gcpFirebaseCredPath)
+func NewWorker(
+	exchange string,
+	queueHandler *queue.QueueHandler,
+	cacheHandler *cache.RedisHandler,
+	databaseHandler *database.FirestoreHandler,
+	exchangeConnector exchange.ExchangeConnector,
+	logger *zap.Logger,
+	podName string,
+	applicationMode string,
+	tracing bool,
+	googleCloudProject string) *Worker {
 
 	telegramHandler := &telegram.TelegramHandler{Qh: queueHandler, Logger: logger}
 
-	strategyHandler := strategy.NewStrategyHandler(cacheHandler, databaseHandler, exchangeHandler, telegramHandler, logger)
+	strategyHandler := strategy.NewStrategyHandler(cacheHandler, databaseHandler, exchangeConnector, telegramHandler, logger)
 
 	// Instantiate worker
 	worker := &Worker{
@@ -87,17 +69,17 @@ func NewWorker(exchange string, exchangeHandler exchange.ExchangeHandler, logger
 		qh: queueHandler,
 		ch: cacheHandler,
 		dh: databaseHandler,
-		eh: exchangeHandler,
+		eh: exchangeConnector,
 		sh: strategyHandler,
 		th: telegramHandler,
 
 		Logger: logger,
 
 		podName:         podName,
-		applicationMode: viper.GetString("applicationMode"),
+		applicationMode: applicationMode,
 
-		tracing:            false, //viper.GetBool("tracing"), // TODO change this
-		googleCloudProject: viper.GetString("GOOGLE_CLOUD_PROJECT"),
+		tracing:            tracing,
+		googleCloudProject: googleCloudProject,
 	}
 
 	// tracing
@@ -181,40 +163,6 @@ func (w *Worker) Shutdown() {
 	time.Sleep(10000)
 
 	w.qh.Consumer.Disconnect()
-}
-
-func getRabbitCfg(podName string) queue.RabbitMqConfig {
-	rabbitMqHostnames := viper.GetString("rabbitMqHostnames")
-	rabbitMqPort := viper.GetString("rabbitMqPort")
-	rabbitMqUser := viper.GetString("RABBITMQ_USER")
-	rabbitMqPassword := viper.GetString("RABBITMQ_PASSWORD")
-	rabbitMqVhost := viper.GetString("rabbitMqVhost")
-
-	rabbitMqCommandsQueueName := viper.GetString("rabbitMqCommandsQueueName")
-	rabbitMqCommandsRoutingKey := viper.GetString("rabbitMqCommandsRoutingKey")
-	rabbitMqEventsQueueName := viper.GetString("rabbitMqEventsQueueName")
-	rabbitMqEventsRoutingKey := viper.GetString("rabbitMqEventsRoutingKey")
-	rabbitMqMdxExchange := viper.GetString("rabbitMqBinanceFuturesUserDataExchange")
-	rabbitMqEventsConsumerName := podName + "-event"
-	rabbitMqCommandsConsumerName := podName + "-command"
-
-	return queue.RabbitMqConfig{
-		Vhost:     rabbitMqVhost,
-		User:      rabbitMqUser,
-		Password:  rabbitMqPassword,
-		Hostnames: rabbitMqHostnames,
-		Port:      rabbitMqPort,
-
-		EventsConsumerName: rabbitMqEventsConsumerName,
-		CommandsQueueName:  rabbitMqCommandsQueueName,
-		CommandsRoutingKey: rabbitMqCommandsRoutingKey,
-
-		CommandsConsumerName: rabbitMqCommandsConsumerName,
-		EventsQueueName:      rabbitMqEventsQueueName,
-		EventsRoutingKey:     rabbitMqEventsRoutingKey,
-
-		MdxExchange: rabbitMqMdxExchange,
-	}
 }
 
 func setupTracing(podName string, logger *zap.Logger) {

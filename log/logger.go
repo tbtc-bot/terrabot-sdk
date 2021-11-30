@@ -1,4 +1,4 @@
-package config
+package log
 
 import (
 	"time"
@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func InitLog() *zap.Logger {
+func NewLogger() *zap.Logger {
 
 	// configure Logging
 	configLog := zap.NewProductionConfig()
@@ -26,5 +26,4 @@ func InitLog() *zap.Logger {
 	}
 
 	return logger
-
 }

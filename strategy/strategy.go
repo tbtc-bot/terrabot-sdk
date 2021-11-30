@@ -23,16 +23,16 @@ const (
 	SLEEP    = 200 * time.Millisecond
 )
 
-type StrategyHandler struct {
+type Strategy struct {
 	ch     *cache.RedisHandler
 	dh     *database.FirestoreHandler
-	eh     exchange.ExchangeHandler
+	eh     exchange.ExchangeConnector
 	th     *telegram.TelegramHandler
 	logger *zap.Logger
 }
 
-func NewStrategyHandler(ch *cache.RedisHandler, dh *database.FirestoreHandler, eh exchange.ExchangeHandler, th *telegram.TelegramHandler, logger *zap.Logger) *StrategyHandler {
-	return &StrategyHandler{
+func NewStrategyHandler(ch *cache.RedisHandler, dh *database.FirestoreHandler, eh exchange.ExchangeConnector, th *telegram.TelegramHandler, logger *zap.Logger) *Strategy {
+	return &Strategy{
 		ch:     ch,
 		dh:     dh,
 		eh:     eh,
@@ -42,7 +42,7 @@ func NewStrategyHandler(ch *cache.RedisHandler, dh *database.FirestoreHandler, e
 }
 
 // Handle a Binance AccountUpdate event
-func (sh *StrategyHandler) HandleAccountUpdate(ctx context.Context, session terrabot.Session, event *queue.WsAccountUpdate) {
+func (sh *Strategy) HandleAccountUpdate(ctx context.Context, session terrabot.Session, event *queue.WsAccountUpdate) {
 
 	for _, wsPos := range event.Positions {
 		position := sh.newPositionFromWsPosition(&wsPos) // convert from binance struct to Position struct
@@ -71,7 +71,7 @@ func (sh *StrategyHandler) HandleAccountUpdate(ctx context.Context, session terr
 	}
 }
 
-func (sh *StrategyHandler) handlePositionUpdate(session terrabot.Session, position terrabot.Position) (err error) {
+func (sh *Strategy) handlePositionUpdate(session terrabot.Session, position terrabot.Position) (err error) {
 	time.Sleep(50 * time.Millisecond) // TODO change this
 
 	// acquire mutex lock
@@ -161,7 +161,7 @@ func (sh *StrategyHandler) handlePositionUpdate(session terrabot.Session, positi
 	return nil
 }
 
-func (sh *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrabot.Session, event *queue.WsOrderTradeUpdate) {
+func (sh *Strategy) HandleOrderUpdate(ctx context.Context, session terrabot.Session, event *queue.WsOrderTradeUpdate) {
 
 	session.Strategy = terrabot.Strategy{
 		Symbol:       event.Symbol,
@@ -301,7 +301,7 @@ func (sh *StrategyHandler) HandleOrderUpdate(ctx context.Context, session terrab
 	}
 }
 
-func (sh *StrategyHandler) newPositionFromWsPosition(p *queue.WsPosition) *terrabot.Position {
+func (sh *Strategy) newPositionFromWsPosition(p *queue.WsPosition) *terrabot.Position {
 
 	amount, _ := strconv.ParseFloat(p.Amount, 64)
 	entryPrice, _ := strconv.ParseFloat(p.EntryPrice, 64)
@@ -320,7 +320,7 @@ func (sh *StrategyHandler) newPositionFromWsPosition(p *queue.WsPosition) *terra
 	}
 }
 
-func (sh *StrategyHandler) lastGridReached(session terrabot.Session) (lastGrid string) {
+func (sh *Strategy) lastGridReached(session terrabot.Session) (lastGrid string) {
 	/* Get from Redis the last grid reached, in a string form, for the telegram notification. Use "-" if not found. */
 
 	metadata, err := sh.ch.ReadMetadata(session)
@@ -332,7 +332,7 @@ func (sh *StrategyHandler) lastGridReached(session terrabot.Session) (lastGrid s
 	return
 }
 
-func (sh *StrategyHandler) ExecuteSession(session terrabot.Session, position terrabot.Position) (err error) {
+func (sh *Strategy) ExecuteSession(session terrabot.Session, position terrabot.Position) (err error) {
 
 	strategy, err := sh.ReadStrategy(session)
 	if err != nil {
@@ -383,7 +383,7 @@ func (sh *StrategyHandler) ExecuteSession(session terrabot.Session, position ter
 	return nil
 }
 
-func (sh *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
+func (sh *Strategy) StartStrategy(session terrabot.Session) (err error) {
 
 	// do nothing if status is not start
 	if session.Strategy.Status != terrabot.StatusStart {
@@ -475,14 +475,14 @@ func (sh *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
 	return nil
 }
 
-func (sh *StrategyHandler) StoreGridSize(session terrabot.Session, s0 float64) error {
+func (sh *Strategy) StoreGridSize(session terrabot.Session, s0 float64) error {
 	GridOrders := float64(session.Strategy.Parameters.GridOrders)
 	OrderFactor := session.Strategy.Parameters.OrderFactor
 	gridSize := s0 * math.Pow(OrderFactor, GridOrders)
 	return sh.ch.WriteGridSize(session, gridSize)
 }
 
-func (sh *StrategyHandler) CreateGrid(session terrabot.Session, balance float64, startPrice float64) error {
+func (sh *Strategy) CreateGrid(session terrabot.Session, balance float64, startPrice float64) error {
 
 	if err := sh.CancelGrid(session); err != nil {
 
@@ -538,7 +538,7 @@ func (sh *StrategyHandler) CreateGrid(session terrabot.Session, balance float64,
 	return nil
 }
 
-func (sh *StrategyHandler) CancelGrid(session terrabot.Session) error {
+func (sh *Strategy) CancelGrid(session terrabot.Session) error {
 
 	openOrders, err := sh.getOpenOrders(session)
 	if err != nil {
@@ -548,7 +548,7 @@ func (sh *StrategyHandler) CancelGrid(session terrabot.Session) error {
 	return sh.cancelMultipleOrders(session, openOrders)
 }
 
-func (sh *StrategyHandler) SetTakeProfit(session terrabot.Session, position terrabot.Position) (err error) {
+func (sh *Strategy) SetTakeProfit(session terrabot.Session, position terrabot.Position) (err error) {
 	sh.CancelLastTakeProfit(session)
 
 	gridSize, err := sh.ch.ReadGridSize(session)
@@ -583,7 +583,7 @@ func (sh *StrategyHandler) SetTakeProfit(session terrabot.Session, position terr
 	return nil
 }
 
-func (sh *StrategyHandler) CancelLastTakeProfit(session terrabot.Session) error {
+func (sh *Strategy) CancelLastTakeProfit(session terrabot.Session) error {
 	id, err := sh.ch.ReadTakeProfit(session)
 	if err != nil {
 		return fmt.Errorf("take profit not found; %s", err)
@@ -596,7 +596,7 @@ func (sh *StrategyHandler) CancelLastTakeProfit(session terrabot.Session) error 
 	return sh.ch.DeleteTakeProfit(session)
 }
 
-func (sh *StrategyHandler) ClosePosition(session terrabot.Session) error {
+func (sh *Strategy) ClosePosition(session terrabot.Session) error {
 	positionAmount, err := sh.eh.GetPositionAmount(session, session.Strategy.Symbol, session.Strategy.PositionSide)
 	if err != nil {
 		return fmt.Errorf("could not get position amount: %s", err)
@@ -625,7 +625,7 @@ func (sh *StrategyHandler) ClosePosition(session terrabot.Session) error {
 	return nil
 }
 
-func (sh *StrategyHandler) GetMarkPrice(symbol string) (float64, error) {
+func (sh *Strategy) GetMarkPrice(symbol string) (float64, error) {
 	markPrice, err := sh.ch.ReadMarkPrice(symbol)
 	if err != nil {
 		sh.logger.Warn("Could not get mark price from Redis",
@@ -636,7 +636,7 @@ func (sh *StrategyHandler) GetMarkPrice(symbol string) (float64, error) {
 	return markPrice, nil
 }
 
-func (sh *StrategyHandler) ReadStrategy(session terrabot.Session) (strategy *terrabot.Strategy, err error) {
+func (sh *Strategy) ReadStrategy(session terrabot.Session) (strategy *terrabot.Strategy, err error) {
 
 	// read from redis first
 	strategy, err = sh.ch.ReadStrategy(session)
