@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -112,7 +113,7 @@ func (w *Worker) Start() {
 // Parse the event from the exchange
 func (w *Worker) parseQueueEvent(ctx context.Context, eventRaw []byte) {
 
-	var queueEvent queue.RmqUserDataEvent
+	var queueEvent queue.RmqProbeEvent
 
 	if err := json.Unmarshal(eventRaw, &queueEvent); err != nil {
 		w.Logger.Error("Error during unmarshaling of event",
@@ -122,35 +123,36 @@ func (w *Worker) parseQueueEvent(ctx context.Context, eventRaw []byte) {
 	}
 
 	session := terrabot.NewSession(queueEvent.BotId, queueEvent.UserId, queueEvent.AccessKey, queueEvent.SecretKey, terrabot.Strategy{})
-	event := queueEvent.Body
 
-	switch event["e"] {
+	switch queueEvent.EventType {
 
-	case "ACCOUNT_UPDATE":
-		eventRaw, _ := json.Marshal(event["a"])
-		var event queue.WsAccountUpdate
-		if err := json.Unmarshal(eventRaw, &event); err != nil {
+	case queue.EventAccountUpdate:
+		eventRaw, _ := json.Marshal(queueEvent.Data)
+		var accountUpdateEvent queue.RmqAccountUpdateData
+		if err := json.Unmarshal(eventRaw, &accountUpdateEvent); err != nil {
 
-			w.Logger.Error("Could not convert to WsAccountUpdate structure",
+			w.Logger.Error("Could not convert to RmqAccountUpdateData structure",
 				zap.String("error", err.Error()))
 			return
 		}
-		if event.Reason == "ORDER" {
-			w.sh.HandleAccountUpdate(ctx, *session, &event)
-		}
 
-	case "ORDER_TRADE_UPDATE":
-		eventRaw, _ := json.Marshal(event["o"])
-		var event queue.WsOrderTradeUpdate
-		if err := json.Unmarshal(eventRaw, &event); err != nil {
+		w.sh.HandleAccountUpdate(ctx, *session, &accountUpdateEvent)
 
-			w.Logger.Error("Could not convert to WsOrderUpdate structure",
+	case queue.EventOrderUpdate:
+		eventRaw, _ := json.Marshal(queueEvent.Data)
+		var orderUpdateEvent queue.RmqOrderUpdateData
+		if err := json.Unmarshal(eventRaw, &orderUpdateEvent); err != nil {
+
+			w.Logger.Error("Could not convert to RmqOrderUpdateData structure",
 				zap.String("error", err.Error()))
 
 			return
 		}
-		w.sh.HandleOrderUpdate(ctx, *session, &event)
+		w.sh.HandleOrderUpdate(ctx, *session, &orderUpdateEvent)
 
+	default:
+		w.Logger.Warn("Event type not recognized",
+			zap.String("event type", fmt.Sprint(queueEvent.EventType)))
 	}
 }
 

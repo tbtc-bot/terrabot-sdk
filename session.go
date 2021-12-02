@@ -19,6 +19,7 @@ func (s Session) String() string {
 }
 
 func NewSession(botId string, userId, apiKey string, apiSecret string, strategy Strategy) *Session {
+	// TODO strategy should be removed from inputs
 	return &Session{
 		BotId:     botId,
 		UserId:    userId,
