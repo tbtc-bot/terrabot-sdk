@@ -486,7 +486,7 @@ func (sh *Strategy) CreateGrid(session terrabot.Session, balance float64, startP
 
 	if err := sh.CancelGrid(session); err != nil {
 
-		msg := fmt.Sprintf("WARNING: %s %s could not cancel grid. Make sure there is not a double grid.", session.Strategy.Symbol, session.Strategy.PositionSide)
+		msg := fmt.Sprintf("WARNING: %s %s could not cancel grid (make sure there is not a double grid): %s", session.Strategy.Symbol, session.Strategy.PositionSide, err)
 		sh.th.SendTelegramMessage(queue.MsgWarning, queue.RmqMessageEvent{
 			UserId:  session.UserId,
 			BotId:   session.BotId,
