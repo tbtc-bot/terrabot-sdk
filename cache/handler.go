@@ -189,6 +189,11 @@ func (rh *RedisHandler) ReadSymbolPricePrecision(symbol string) int {
 		)
 		return 1
 	}
+
+	// TODO change this
+	if symbolInfo.PricePrecision == 0 {
+		return 2
+	}
 	return symbolInfo.PricePrecision
 }
 
