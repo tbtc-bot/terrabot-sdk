@@ -122,7 +122,7 @@ func (w *Worker) parseQueueEvent(ctx context.Context, eventRaw []byte) {
 		return
 	}
 
-	session := terrabot.NewSession(queueEvent.BotId, queueEvent.UserId, queueEvent.AccessKey, queueEvent.SecretKey, queueEvent.Passphrase, true /*TODO change this*/, terrabot.Strategy{})
+	session := terrabot.NewSession(queueEvent.BotId, queueEvent.UserId, queueEvent.AccessKey, queueEvent.SecretKey, queueEvent.Passphrase, queueEvent.SimulationMode, terrabot.Strategy{})
 
 	switch queueEvent.EventType {
 

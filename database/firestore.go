@@ -115,6 +115,7 @@ func (fh *FirestoreHandler) ReadStrategy(botID string, symbol string, positionSi
 			GridStep:               interfaceToFloat64(data["gridStep"]),
 			OrderBaseType:          terrabot.OrderBaseType(fmt.Sprintf("%v", data["orderBaseType"])),
 			StepFactor:             interfaceToFloat64(data["stepFactor"]),
+			OrderSize:              interfaceToFloat64(data["orderSize"]),
 			OrderFactor:            interfaceToFloat64(data["orderFactor"]),
 			TakeStep:               interfaceToFloat64(data["takeStep"]),
 			TakeStepLimit:          interfaceToFloat64(data["takeStepLimit"]),

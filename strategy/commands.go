@@ -25,7 +25,7 @@ func (s *Strategy) ParseCommandEvent(eventRaw []byte) {
 
 	// create new session
 	strategyTmp := terrabot.NewStrategy(terrabot.StrategyDummy, event.Symbol, terrabot.PositionSideType(event.PositionSide), terrabot.StrategyParameters{}) // dummy strategy without parameters
-	session := terrabot.NewSession(event.BotId, event.UserId, event.AccessKey, event.SecretKey, event.PassPhrase, true /*TODO change this*/, *strategyTmp)
+	session := terrabot.NewSession(event.BotId, event.UserId, event.AccessKey, event.SecretKey, event.PassPhrase, event.SimulationMode, *strategyTmp)
 
 	// acquire mutex lock
 	key := s.ch.RedisKey(*session)
