@@ -192,6 +192,11 @@ func (rh *RedisHandler) ReadSymbolPricePrecision(symbol string) int {
 		)
 		return 1
 	}
+
+	// TODO change this
+	if symbolInfo.PricePrecision == 0 {
+		return 2
+	}
 	return symbolInfo.PricePrecision
 }
 
@@ -220,18 +225,22 @@ func (rh *RedisHandler) ReadSymbolMinQty(symbol string) float64 {
 }
 
 func (rh *RedisHandler) ReadSymbolInfo(symbol string) (*terrabot.SymbolInfo, error) {
+
 	exchangeInfoJson, err := rh.Client.Get(rh.Exchange + EXCHANGE_INFO_SUFFIX)
 	if err != nil {
 		return nil, fmt.Errorf("could not read exchange info from Redis")
 	}
+
 	var exchangeInfo terrabot.ExchangeInfo
 	if err := json.Unmarshal([]byte(exchangeInfoJson), &exchangeInfo); err != nil {
 		return nil, fmt.Errorf("could not unmarshal exchange info")
 	}
+
 	symbolInfo, ok := exchangeInfo[symbol]
 	if !ok {
 		return nil, fmt.Errorf("could not find symbol %s in exchange info", symbol)
 	}
+
 	return &symbolInfo, nil
 }
 

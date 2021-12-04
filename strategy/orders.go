@@ -8,23 +8,23 @@ import (
 )
 
 // ORDERS
-func (sh *Strategy) cancelMultipleOrders(session terrabot.Session, orders []string) error {
+func (s *Strategy) cancelMultipleOrders(session terrabot.Session, orders []string) error {
 
 	if len(orders) > 0 {
 
-		if err := sh.eh.CancelMultipleOrders(session, session.Strategy.Symbol, orders); err != nil {
+		if err := s.eh.CancelMultipleOrders(session, session.Strategy.Symbol, orders); err != nil {
 			return err
 		}
 
-		sh.removeMultipleOrdersFromMemory(session, orders)
+		s.removeMultipleOrdersFromMemory(session, orders)
 	}
 
 	return nil
 }
 
-func (sh *Strategy) addGridOrder(session terrabot.Session, order *terrabot.Order) (err error) {
+func (s *Strategy) addGridOrder(session terrabot.Session, order *terrabot.Order) (err error) {
 	// round price and size to max symbol precision
-	symbolInfo, _ := sh.ch.ReadSymbolInfo(order.Symbol)
+	symbolInfo, _ := s.ch.ReadSymbolInfo(order.Symbol)
 	pricePrecision := symbolInfo.PricePrecision
 	order.Price = util.RoundFloatWithPrecision(order.Price, pricePrecision)
 	order.TriggerPrice = util.RoundFloatWithPrecision(order.TriggerPrice, pricePrecision)
@@ -34,9 +34,9 @@ func (sh *Strategy) addGridOrder(session terrabot.Session, order *terrabot.Order
 	var id string
 	switch order.Type {
 	case terrabot.OrderLimit:
-		id, err = sh.eh.PlaceOrderLimitRetry(session, order, ATTEMPTS, SLEEP)
+		id, err = s.eh.PlaceOrderLimitRetry(session, order, ATTEMPTS, SLEEP)
 	case terrabot.OrderStopMarket:
-		id, err = sh.eh.PlaceOrderStopMarketRetry(session, order, ATTEMPTS, SLEEP)
+		id, err = s.eh.PlaceOrderStopMarketRetry(session, order, ATTEMPTS, SLEEP)
 	default:
 		return fmt.Errorf("order type %s not valid for take profit order", order.Type)
 	}
@@ -47,20 +47,24 @@ func (sh *Strategy) addGridOrder(session terrabot.Session, order *terrabot.Order
 	// save order to memory
 	order.ID = id
 
-	sh.addOrderToMemory(session, order)
+	s.addOrderToMemory(session, order)
 	return nil
 }
 
-func (sh *Strategy) addMarketOrder(session terrabot.Session, order *terrabot.Order) error {
+func (s *Strategy) addMarketOrder(session terrabot.Session, order *terrabot.Order) error {
+	// TODO round precision should be done in the exchange api requests
+
 	// round size to max symbol precision
-	quantityPrecision := sh.ch.ReadSymbolQtyPrecision(order.Symbol)
+	quantityPrecision := s.ch.ReadSymbolQtyPrecision(order.Symbol)
 	order.Amount = util.RoundFloatWithPrecision(order.Amount, quantityPrecision)
-	return sh.eh.PlaceOrderMarketRetry(session, order, ATTEMPTS, SLEEP)
+	return s.eh.PlaceOrderMarketRetry(session, order, ATTEMPTS, SLEEP)
 }
 
-func (sh *Strategy) addTakeProfitOrder(session terrabot.Session, order *terrabot.Order) (err error) {
+func (s *Strategy) addTakeProfitOrder(session terrabot.Session, order *terrabot.Order) (err error) {
+	// TODO round precision should be done in the exchange api requests
+
 	// round price with symbol precision
-	pricePrecision := sh.ch.ReadSymbolPricePrecision(order.Symbol)
+	pricePrecision := s.ch.ReadSymbolPricePrecision(order.Symbol)
 	order.Price = util.RoundFloatWithPrecision(order.Price, pricePrecision)
 	order.TriggerPrice = util.RoundFloatWithPrecision(order.TriggerPrice, pricePrecision)
 
@@ -68,13 +72,13 @@ func (sh *Strategy) addTakeProfitOrder(session terrabot.Session, order *terrabot
 	switch order.Type {
 
 	case terrabot.OrderLimit:
-		id, err = sh.eh.PlaceOrderLimitRetry(session, order, ATTEMPTS, SLEEP)
+		id, err = s.eh.PlaceOrderLimitRetry(session, order, ATTEMPTS, SLEEP)
 
 	case terrabot.OrderTrailing:
-		id, err = sh.eh.PlaceOrderTrailingRetry(session, order, ATTEMPTS, SLEEP)
+		id, err = s.eh.PlaceOrderTrailingRetry(session, order, ATTEMPTS, SLEEP)
 
 	case terrabot.OrderStopMarket:
-		id, err = sh.eh.PlaceOrderStopMarketRetry(session, order, ATTEMPTS, SLEEP)
+		id, err = s.eh.PlaceOrderStopMarketRetry(session, order, ATTEMPTS, SLEEP)
 
 	default:
 		return fmt.Errorf("order type %s not valid for take profit order", order.Type)
@@ -87,16 +91,16 @@ func (sh *Strategy) addTakeProfitOrder(session terrabot.Session, order *terrabot
 	return nil
 }
 
-func (sh *Strategy) getOpenOrders(session terrabot.Session) ([]string, error) {
+func (s *Strategy) getOpenOrders(session terrabot.Session) ([]string, error) {
 
 	// first try binance, then redis
 	var openOrders []string
 
-	openOrders, err := sh.eh.GetOpenOrders(session, session.Strategy.Symbol, session.Strategy.PositionSide)
+	openOrders, err := s.eh.GetOpenOrders(session, session.Strategy.Symbol, session.Strategy.PositionSide)
 	if err != nil {
 
 		// get open orders from redis
-		openOrdersMap, err := sh.ch.ReadOpenOrders(session)
+		openOrdersMap, err := s.ch.ReadOpenOrders(session)
 		if err != nil {
 			return nil, fmt.Errorf("could not get open orders neither from Binance and Redis: %s", err)
 		}
@@ -111,23 +115,23 @@ func (sh *Strategy) getOpenOrders(session terrabot.Session) ([]string, error) {
 	return openOrders, nil
 }
 
-func (sh *Strategy) addOrderToMemory(session terrabot.Session, order *terrabot.Order) error {
-	key := sh.ch.RedisKey(session)
-	openOrders, err := sh.ch.ReadOpenOrders(session)
+func (s *Strategy) addOrderToMemory(session terrabot.Session, order *terrabot.Order) error {
+	key := s.ch.RedisKey(session)
+	openOrders, err := s.ch.ReadOpenOrders(session)
 	if err != nil {
 		return fmt.Errorf("could not get open orders with key %s: %s", key, err)
 	}
 	openOrders[order.ID] = *order
 
-	if err = sh.ch.WriteOpenOrders(session, openOrders); err != nil {
+	if err = s.ch.WriteOpenOrders(session, openOrders); err != nil {
 		return fmt.Errorf("could not set open orders with key %s: %s", key, err)
 	}
 	return nil
 }
 
-func (sh *Strategy) removeMultipleOrdersFromMemory(session terrabot.Session, ids []string) error {
-	key := sh.ch.RedisKey(session)
-	openOrders, err := sh.ch.ReadOpenOrders(session)
+func (s *Strategy) removeMultipleOrdersFromMemory(session terrabot.Session, ids []string) error {
+	key := s.ch.RedisKey(session)
+	openOrders, err := s.ch.ReadOpenOrders(session)
 	if err != nil {
 		return fmt.Errorf("could not get open orders with key %s: %s", key, err)
 	}
@@ -136,7 +140,7 @@ func (sh *Strategy) removeMultipleOrdersFromMemory(session terrabot.Session, ids
 		delete(openOrders, id)
 	}
 
-	if err = sh.ch.WriteOpenOrders(session, openOrders); err != nil {
+	if err = s.ch.WriteOpenOrders(session, openOrders); err != nil {
 		return fmt.Errorf("could not set open orders with key %s: %s", key, err)
 	}
 	return nil

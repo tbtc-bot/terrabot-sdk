@@ -9,15 +9,15 @@ import (
 	"go.uber.org/zap"
 )
 
-func (sh *Strategy) walletBalanceFromAPI(session terrabot.Session) (terrabot.WalletBalance, error) {
-	balance, err := sh.eh.GetBalanceRetry(session, ATTEMPTS, SLEEP)
+func (s *Strategy) walletBalanceFromAPI(session terrabot.Session) (terrabot.WalletBalance, error) {
+	balance, err := s.eh.GetBalanceRetry(session, ATTEMPTS, SLEEP)
 	if err != nil {
 		return nil, fmt.Errorf("could not get wallet balance from API: %s", err)
 	}
 
-	err = sh.ch.WriteWalletBalance(session, balance)
+	err = s.ch.WriteWalletBalance(session, balance)
 	if err != nil {
-		sh.logger.Error("Could not store balance in redis",
+		s.logger.Error("Could not store balance in redis",
 			zap.String("botId", session.BotId),
 			zap.String("key", session.BotId+cache.KEY_WALLET_BALANCE),
 			zap.String("error", err.Error()),
@@ -26,12 +26,12 @@ func (sh *Strategy) walletBalanceFromAPI(session terrabot.Session) (terrabot.Wal
 	return balance, nil
 }
 
-func (sh *Strategy) getAssetBalance(session terrabot.Session, asset terrabot.Asset) (float64, error) {
-	walletBalance, err := sh.walletBalanceFromAPI(session)
+func (s *Strategy) getAssetBalance(session terrabot.Session, asset terrabot.Asset) (float64, error) {
+	walletBalance, err := s.walletBalanceFromAPI(session)
 	if err != nil {
 
 		// if api fails, get from redis
-		walletBalance, err = sh.ch.ReadWalletBalance(session.BotId)
+		walletBalance, err = s.ch.ReadWalletBalance(session.BotId)
 		if err != nil {
 			return 0, err
 		}

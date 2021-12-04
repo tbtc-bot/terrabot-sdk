@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/tbtc-bot/terrabot-sdk"
@@ -289,9 +290,9 @@ func (s *Strategy) HandleOrderUpdate(ctx context.Context, session terrabot.Sessi
 			s.th.SendTelegramTP(tp)
 		}
 
-	default:
-		s.logger.Warn("Event type not recognized",
-			zap.String("event", event.OrderStatus))
+		// default:
+		// 	s.logger.Warn("Event type not recognized",
+		// 		zap.String("event", event.OrderStatus))
 
 	}
 }
@@ -306,7 +307,7 @@ func (s *Strategy) newPositionFromWsPosition(p *queue.RmqAccountUpdatePosition) 
 
 	return &terrabot.Position{
 		Symbol:       p.Symbol,
-		PositionSide: terrabot.PositionSideType(p.PositionSide),
+		PositionSide: terrabot.PositionSideType(strings.ToUpper(p.PositionSide)),
 		Size:         p.PositionAmount,
 		EntryPrice:   p.EntryPrice,
 		MarkPrice:    markPrice,
