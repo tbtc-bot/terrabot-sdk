@@ -30,7 +30,6 @@ func NewFirestoreHandler(serviceAccount string) *FirestoreHandler {
 	sa := option.WithCredentialsFile(serviceAccount)
 	app, err := firebase.NewApp(ctx, nil, sa)
 	if err != nil {
-		fmt.Println(err)
 		zap.L().Error("Error initiating firebase",
 			zap.String("error", err.Error()),
 		)

@@ -5,12 +5,13 @@ import (
 )
 
 type Session struct {
-	BotId     string
-	UserId    string
-	ApiKey    string
-	ApiSecret string
-	Password  string
-	Strategy  Strategy
+	BotId          string
+	UserId         string
+	ApiKey         string
+	ApiSecret      string
+	Password       string
+	SimulationMode bool
+	Strategy       Strategy
 }
 
 func (s Session) String() string {
@@ -18,13 +19,15 @@ func (s Session) String() string {
 		s.BotId, s.UserId, s.Strategy.Symbol, s.Strategy.PositionSide, s.Strategy.Status)
 }
 
-func NewSession(botId string, userId, apiKey string, apiSecret string, strategy Strategy) *Session {
+func NewSession(botId string, userId, apiKey string, apiSecret string, passphrase string, simulationMode bool, strategy Strategy) *Session {
 	// TODO strategy should be removed from inputs
 	return &Session{
-		BotId:     botId,
-		UserId:    userId,
-		ApiKey:    apiKey,
-		ApiSecret: apiSecret,
-		Strategy:  strategy,
+		BotId:          botId,
+		UserId:         userId,
+		ApiKey:         apiKey,
+		ApiSecret:      apiSecret,
+		Password:       passphrase,
+		SimulationMode: simulationMode,
+		Strategy:       strategy,
 	}
 }
