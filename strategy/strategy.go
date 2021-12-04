@@ -646,7 +646,13 @@ func (s *Strategy) ReadStrategy(session terrabot.Session) (strategy *terrabot.St
 
 	// store on redis
 	session.Strategy = *strategy
-	s.ch.WriteStrategy(session)
+
+	if err := s.ch.WriteStrategy(session); err != nil {
+		s.logger.Warn("Could not store strategy in Redis",
+			zap.String("error", err.Error()),
+			zap.String("key", s.ch.RedisKey(session)),
+		)
+	}
 
 	return strategy, nil
 }
