@@ -12,7 +12,7 @@ import (
 func (sh *Strategy) walletBalanceFromAPI(session terrabot.Session) (terrabot.WalletBalance, error) {
 	balance, err := sh.eh.GetBalanceRetry(session, ATTEMPTS, SLEEP)
 	if err != nil {
-		return nil, fmt.Errorf("could not get wallet balance from binance: %s", err)
+		return nil, fmt.Errorf("could not get wallet balance from API: %s", err)
 	}
 
 	err = sh.ch.WriteWalletBalance(session, balance)

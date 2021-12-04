@@ -9,13 +9,15 @@ type RmqUserDataEvent struct {
 }
 
 type RmqApiServerCommandEvent struct {
-	BotId        string `json:"botId"`
-	UserId       string `json:"userId"`
-	AccessKey    string `json:"accessKey"`
-	SecretKey    string `json:"secretKey"`
-	Command      string `json:"command"`
-	Symbol       string `json:"symbol"`
-	PositionSide string `json:"positionSide"`
+	BotId          string `json:"botId"`
+	UserId         string `json:"userId"`
+	AccessKey      string `json:"accessKey"`
+	SecretKey      string `json:"secretKey"`
+	PassPhrase     string `json:"passPhrase"`
+	SimulationMode bool   `json:"simulationMode"`
+	Command        string `json:"command"`
+	Symbol         string `json:"symbol"`
+	PositionSide   string `json:"positionSide"`
 }
 
 // type WsAccountUpdate struct {
