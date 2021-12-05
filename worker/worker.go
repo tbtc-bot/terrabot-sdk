@@ -33,7 +33,7 @@ type Worker struct {
 	ch *cache.RedisHandler
 	dh *database.FirestoreHandler
 	eh exchange.ExchangeConnector
-	sh *strategy.Strategy
+	sh *strategy.StrategyHandler
 	th *telegram.TelegramHandler
 
 	Logger *zap.Logger
@@ -122,7 +122,7 @@ func (w *Worker) parseQueueEvent(ctx context.Context, eventRaw []byte) {
 		return
 	}
 
-	session := terrabot.NewSession(queueEvent.BotId, queueEvent.UserId, queueEvent.AccessKey, queueEvent.SecretKey, queueEvent.Passphrase, queueEvent.SimulationMode, terrabot.Strategy{})
+	session := terrabot.NewSession(queueEvent.BotId, queueEvent.UserId, queueEvent.AccessKey, queueEvent.SecretKey, queueEvent.Passphrase, queueEvent.SimulationMode)
 
 	switch queueEvent.EventType {
 

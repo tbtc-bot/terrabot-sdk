@@ -11,7 +11,7 @@ type Session struct {
 	ApiSecret      string
 	Password       string
 	SimulationMode bool
-	Strategy       Strategy
+	Strategy       *Strategy
 }
 
 func (s Session) String() string {
@@ -19,8 +19,8 @@ func (s Session) String() string {
 		s.BotId, s.UserId, s.Strategy.Symbol, s.Strategy.PositionSide, s.Strategy.Status)
 }
 
-func NewSession(botId string, userId, apiKey string, apiSecret string, passphrase string, simulationMode bool, strategy Strategy) *Session {
-	// TODO strategy should be removed from inputs
+func NewSession(botId string, userId, apiKey string, apiSecret string, passphrase string, simulationMode bool) *Session {
+
 	return &Session{
 		BotId:          botId,
 		UserId:         userId,
@@ -28,6 +28,6 @@ func NewSession(botId string, userId, apiKey string, apiSecret string, passphras
 		ApiSecret:      apiSecret,
 		Password:       passphrase,
 		SimulationMode: simulationMode,
-		Strategy:       strategy,
+		Strategy:       &Strategy{},
 	}
 }

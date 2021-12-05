@@ -9,7 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func (sh *Strategy) walletBalanceFromAPI(session terrabot.Session) (terrabot.WalletBalance, error) {
+func (sh *StrategyHandler) walletBalanceFromAPI(session terrabot.Session) (terrabot.WalletBalance, error) {
+
 	balance, err := sh.eh.GetBalanceRetry(session, ATTEMPTS, SLEEP)
 	if err != nil {
 		return nil, fmt.Errorf("could not get wallet balance from API: %s", err)
@@ -26,7 +27,8 @@ func (sh *Strategy) walletBalanceFromAPI(session terrabot.Session) (terrabot.Wal
 	return balance, nil
 }
 
-func (sh *Strategy) getAssetBalance(session terrabot.Session, asset terrabot.Asset) (float64, error) {
+func (sh *StrategyHandler) getAssetBalance(session terrabot.Session, asset terrabot.Asset) (float64, error) {
+
 	walletBalance, err := sh.walletBalanceFromAPI(session)
 	if err != nil {
 

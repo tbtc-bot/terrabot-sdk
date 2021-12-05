@@ -8,7 +8,7 @@ import (
 )
 
 // ORDERS
-func (sh *Strategy) cancelMultipleOrders(session terrabot.Session, orders []string) error {
+func (sh *StrategyHandler) cancelMultipleOrders(session terrabot.Session, orders []string) error {
 
 	if len(orders) > 0 {
 
@@ -22,7 +22,8 @@ func (sh *Strategy) cancelMultipleOrders(session terrabot.Session, orders []stri
 	return nil
 }
 
-func (sh *Strategy) addGridOrder(session terrabot.Session, order *terrabot.Order) (err error) {
+func (sh *StrategyHandler) addGridOrder(session terrabot.Session, order *terrabot.Order) (err error) {
+
 	// round price and size to max symbol precision
 	symbolInfo, _ := sh.ch.ReadSymbolInfo(order.Symbol)
 	pricePrecision := symbolInfo.PricePrecision
@@ -51,14 +52,16 @@ func (sh *Strategy) addGridOrder(session terrabot.Session, order *terrabot.Order
 	return nil
 }
 
-func (sh *Strategy) addMarketOrder(session terrabot.Session, order *terrabot.Order) error {
+func (sh *StrategyHandler) addMarketOrder(session terrabot.Session, order *terrabot.Order) error {
+	// TODO round precision should be done in the exchange api requests
 	// round size to max symbol precision
 	quantityPrecision := sh.ch.ReadSymbolQtyPrecision(order.Symbol)
 	order.Amount = util.RoundFloatWithPrecision(order.Amount, quantityPrecision)
 	return sh.eh.PlaceOrderMarketRetry(session, order, ATTEMPTS, SLEEP)
 }
 
-func (sh *Strategy) addTakeProfitOrder(session terrabot.Session, order *terrabot.Order) (err error) {
+func (sh *StrategyHandler) addTakeProfitOrder(session terrabot.Session, order *terrabot.Order) (err error) {
+	// TODO round precision should be done in the exchange api requests
 	// round price with symbol precision
 	pricePrecision := sh.ch.ReadSymbolPricePrecision(order.Symbol)
 	order.Price = util.RoundFloatWithPrecision(order.Price, pricePrecision)
@@ -87,7 +90,7 @@ func (sh *Strategy) addTakeProfitOrder(session terrabot.Session, order *terrabot
 	return nil
 }
 
-func (sh *Strategy) getOpenOrders(session terrabot.Session) ([]string, error) {
+func (sh *StrategyHandler) getOpenOrders(session terrabot.Session) ([]string, error) {
 
 	// first try binance, then redis
 	var openOrders []string
@@ -111,7 +114,8 @@ func (sh *Strategy) getOpenOrders(session terrabot.Session) ([]string, error) {
 	return openOrders, nil
 }
 
-func (sh *Strategy) addOrderToMemory(session terrabot.Session, order *terrabot.Order) error {
+func (sh *StrategyHandler) addOrderToMemory(session terrabot.Session, order *terrabot.Order) error {
+
 	key := sh.ch.RedisKey(session)
 	openOrders, err := sh.ch.ReadOpenOrders(session)
 	if err != nil {
@@ -125,7 +129,8 @@ func (sh *Strategy) addOrderToMemory(session terrabot.Session, order *terrabot.O
 	return nil
 }
 
-func (sh *Strategy) removeMultipleOrdersFromMemory(session terrabot.Session, ids []string) error {
+func (sh *StrategyHandler) removeMultipleOrdersFromMemory(session terrabot.Session, ids []string) error {
+
 	key := sh.ch.RedisKey(session)
 	openOrders, err := sh.ch.ReadOpenOrders(session)
 	if err != nil {
