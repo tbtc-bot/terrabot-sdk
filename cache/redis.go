@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	MUTEX_EXPIRY_SEC = 8
+	MUTEX_EXPIRY_SEC = 15
 	SLEEP            = 200 * time.Millisecond
 
 	// lock retry parameters
-	NEW_MUTEX_TRIES       = 1000
+	NEW_MUTEX_TRIES       = 2000
 	minRetryDelayMilliSec = 5
 	maxRetryDelayMilliSec = 10
 )
