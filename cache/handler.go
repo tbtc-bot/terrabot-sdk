@@ -9,18 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	KEY_STRATEGY_SUFFIX    = "-strategy"
-	KEY_OPEN_ORDERS_SUFFIX = "-openOrders"
-	KEY_POSITION_SUFFIX    = "-position"
-	MARK_PRICES_SUFFIX     = "-markPrices"
-	KEY_TP_SUFFIX          = "-tpId"
-	METADATA_SUFFIX        = "-metadata"
-	EXCHANGE_INFO_SUFFIX   = "-exchangeInfo"
-	GRID_SIZE_SUFFIX       = "-gridSize"
-	KEY_WALLET_BALANCE     = "-walletBalance"
-)
-
 type RedisHandler struct {
 	Client   *RedisDB
 	Logger   *zap.Logger
@@ -29,8 +17,8 @@ type RedisHandler struct {
 
 // STRATEGY
 func (rh *RedisHandler) ReadStrategy(session terrabot.Session) (*terrabot.Strategy, error) {
-	prefixKey := rh.RedisKey(session)
-	key := prefixKey + KEY_STRATEGY_SUFFIX
+
+	key := GetRedisKeyStrategy(rh.Exchange, session)
 	strategyJson, err := rh.Client.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("could not get from redis strategy with key %s: %s", key, err)
@@ -52,7 +40,8 @@ func (rh *RedisHandler) ReadStrategy(session terrabot.Session) (*terrabot.Strate
 }
 
 func (rh *RedisHandler) WriteStrategy(session terrabot.Session) error {
-	key := rh.RedisKey(session) + KEY_STRATEGY_SUFFIX
+
+	key := GetRedisKeyStrategy(rh.Exchange, session)
 
 	strategyJson, err := json.Marshal(session.Strategy)
 	if err != nil {
@@ -63,7 +52,8 @@ func (rh *RedisHandler) WriteStrategy(session terrabot.Session) error {
 
 // OPEN ORDERS
 func (rh *RedisHandler) ReadOpenOrders(session terrabot.Session) (terrabot.OpenOrders, error) {
-	key := rh.RedisKey(session) + KEY_OPEN_ORDERS_SUFFIX
+
+	key := GetRedisKeyOpenOrders(rh.Exchange, session)
 	openOrdersJson, err := rh.Client.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("could not get from redis open orders with key %s: %s", key, err)
@@ -78,7 +68,8 @@ func (rh *RedisHandler) ReadOpenOrders(session terrabot.Session) (terrabot.OpenO
 }
 
 func (rh *RedisHandler) WriteOpenOrders(session terrabot.Session, openOrders terrabot.OpenOrders) error {
-	key := rh.RedisKey(session) + KEY_OPEN_ORDERS_SUFFIX
+
+	key := GetRedisKeyOpenOrders(rh.Exchange, session)
 
 	openOrdersJson, err := json.Marshal(openOrders)
 	if err != nil {
@@ -90,7 +81,8 @@ func (rh *RedisHandler) WriteOpenOrders(session terrabot.Session, openOrders ter
 
 // POSITION
 func (rh *RedisHandler) ReadPosition(session terrabot.Session) (*terrabot.Position, error) {
-	key := rh.RedisKey(session) + KEY_POSITION_SUFFIX
+
+	key := GetRedisKeyPosition(rh.Exchange, session)
 	positionJson, err := rh.Client.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("could not get from redis position with key %s: %s", key, err)
@@ -112,7 +104,8 @@ func (rh *RedisHandler) ReadPosition(session terrabot.Session) (*terrabot.Positi
 }
 
 func (rh *RedisHandler) WritePosition(session terrabot.Session, position terrabot.Position) error {
-	key := rh.RedisKey(session) + KEY_POSITION_SUFFIX
+
+	key := GetRedisKeyPosition(rh.Exchange, session)
 
 	positionJson, err := json.Marshal(position)
 	if err != nil {
@@ -123,7 +116,8 @@ func (rh *RedisHandler) WritePosition(session terrabot.Session, position terrabo
 
 // TP ORDER
 func (rh *RedisHandler) ReadTakeProfit(session terrabot.Session) (string, error) {
-	key := rh.RedisKey(session) + KEY_TP_SUFFIX
+
+	key := GetRedisKeyTpId(rh.Exchange, session)
 	id, err := rh.Client.Get(key)
 	if err != nil {
 		return "", fmt.Errorf("could not get from redis take profit ID with key %s: %s", key, err)
@@ -133,32 +127,34 @@ func (rh *RedisHandler) ReadTakeProfit(session terrabot.Session) (string, error)
 }
 
 func (rh *RedisHandler) WriteTakeProfit(session terrabot.Session, id string) error {
-	key := rh.RedisKey(session) + KEY_TP_SUFFIX
 
+	key := GetRedisKeyTpId(rh.Exchange, session)
 	return rh.Client.Set(key, id)
 }
 
 func (rh *RedisHandler) DeleteTakeProfit(session terrabot.Session) error {
-	key := rh.RedisKey(session) + KEY_TP_SUFFIX
 
+	key := GetRedisKeyTpId(rh.Exchange, session)
 	_, err := rh.Client.Del(key)
 	return err
 }
 
 // DELETE ALL KEYS
 func (rh *RedisHandler) DeleteAllKeys(session terrabot.Session) {
-	baseKey := rh.RedisKey(session)
-	rh.Client.Del(baseKey + KEY_STRATEGY_SUFFIX)
-	rh.Client.Del(baseKey + KEY_OPEN_ORDERS_SUFFIX)
-	rh.Client.Del(baseKey + KEY_POSITION_SUFFIX)
-	rh.Client.Del(baseKey + KEY_TP_SUFFIX)
-	rh.Client.Del(baseKey + METADATA_SUFFIX)
-	rh.Client.Del(baseKey + GRID_SIZE_SUFFIX)
+
+	rh.Client.Del(GetRedisKeyStrategy(rh.Exchange, session))
+	rh.Client.Del(GetRedisKeyOpenOrders(rh.Exchange, session))
+	rh.Client.Del(GetRedisKeyPosition(rh.Exchange, session))
+	rh.Client.Del(GetRedisKeyTpId(rh.Exchange, session))
+	rh.Client.Del(GetRedisKeyMetadata(rh.Exchange, session))
+	rh.Client.Del(GetRedisKeyGridSize(rh.Exchange, session))
+
 }
 
 // WALLET BALANCE
 func (rh *RedisHandler) ReadWalletBalance(botId string) (terrabot.WalletBalance, error) {
-	key := rh.Exchange + "-" + botId + KEY_WALLET_BALANCE
+
+	key := GetRedisKeyWalletBalance(rh.Exchange, botId)
 	balanceJson, err := rh.Client.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("could not get from redis balance with key %s: %s", key, err)
@@ -173,7 +169,8 @@ func (rh *RedisHandler) ReadWalletBalance(botId string) (terrabot.WalletBalance,
 }
 
 func (rh *RedisHandler) WriteWalletBalance(session terrabot.Session, walletBalance terrabot.WalletBalance) error {
-	key := rh.Exchange + "-" + session.BotId + KEY_WALLET_BALANCE
+
+	key := GetRedisKeyWalletBalance(rh.Exchange, session.BotId)
 
 	balanceJson, err := json.Marshal(walletBalance)
 	if err != nil {
@@ -220,7 +217,9 @@ func (rh *RedisHandler) ReadSymbolMinQty(symbol string) float64 {
 }
 
 func (rh *RedisHandler) ReadSymbolInfo(symbol string) (*terrabot.SymbolInfo, error) {
-	exchangeInfoJson, err := rh.Client.Get(rh.Exchange + EXCHANGE_INFO_SUFFIX)
+
+	key := GetRedisKeyExchangeInfo(rh.Exchange)
+	exchangeInfoJson, err := rh.Client.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("could not read exchange info from Redis")
 	}
@@ -236,20 +235,11 @@ func (rh *RedisHandler) ReadSymbolInfo(symbol string) (*terrabot.SymbolInfo, err
 }
 
 func (rh *RedisHandler) ReadMarkPrice(symbol string) (float64, error) {
-	key := rh.Exchange + MARK_PRICES_SUFFIX
-	prices, err := rh.Client.Get(key)
+
+	key := GetRedisKeyMarkPrice(rh.Exchange, symbol)
+	priceStr, err := rh.Client.Get(key)
 	if err != nil {
 		return 0, fmt.Errorf("coulf not get mark price from redis with key %s: %s", key, err)
-	}
-
-	var pricesMap map[string]string
-	if err := json.Unmarshal([]byte(prices), &pricesMap); err != nil {
-		return 0, fmt.Errorf("could not unmarshal prices with key %s: %s", key, err)
-	}
-
-	priceStr, ok := pricesMap[symbol]
-	if !ok {
-		return 0, fmt.Errorf("mark price not found found with key %s", key)
 	}
 
 	return strconv.ParseFloat(priceStr, 64)
@@ -261,7 +251,8 @@ func (rh *RedisHandler) RedisKey(session terrabot.Session) string {
 
 // METADATA
 func (rh *RedisHandler) ReadMetadata(session terrabot.Session) (*terrabot.Metadata, error) {
-	key := rh.RedisKey(session) + METADATA_SUFFIX
+
+	key := GetRedisKeyMetadata(rh.Exchange, session)
 	metadataJson, err := rh.Client.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("could not get from redis metadata with key %s: %s", key, err)
@@ -276,7 +267,8 @@ func (rh *RedisHandler) ReadMetadata(session terrabot.Session) (*terrabot.Metada
 }
 
 func (rh *RedisHandler) WriteMetadata(session terrabot.Session, metadata terrabot.Metadata) {
-	key := rh.RedisKey(session) + METADATA_SUFFIX
+
+	key := GetRedisKeyMetadata(rh.Exchange, session)
 	metadataJson, err := json.Marshal(metadata)
 	if err != nil {
 
@@ -302,7 +294,8 @@ func (rh *RedisHandler) WriteMetadata(session terrabot.Session, metadata terrabo
 // GRID SIZE
 /* Used for TakeStepLimit */
 func (rh *RedisHandler) ReadGridSize(session terrabot.Session) (float64, error) {
-	key := rh.RedisKey(session) + GRID_SIZE_SUFFIX
+
+	key := GetRedisKeyGridSize(rh.Exchange, session)
 	gridSizeString, err := rh.Client.Get(key)
 	if err != nil {
 		return 0, fmt.Errorf("could not get from redis grid size with key %s: %s", key, err)
@@ -312,6 +305,7 @@ func (rh *RedisHandler) ReadGridSize(session terrabot.Session) (float64, error) 
 }
 
 func (rh *RedisHandler) WriteGridSize(session terrabot.Session, gridSize float64) error {
-	key := rh.RedisKey(session) + GRID_SIZE_SUFFIX
+
+	key := GetRedisKeyGridSize(rh.Exchange, session)
 	return rh.Client.Set(key, fmt.Sprint(gridSize))
 }

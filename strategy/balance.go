@@ -19,7 +19,7 @@ func (sh *Strategy) walletBalanceFromAPI(session terrabot.Session) (terrabot.Wal
 	if err != nil {
 		sh.logger.Error("Could not store balance in redis",
 			zap.String("botId", session.BotId),
-			zap.String("key", session.BotId+cache.KEY_WALLET_BALANCE),
+			zap.String("key", cache.GetRedisKeyWalletBalance(sh.ch.Exchange, session.BotId)),
 			zap.String("error", err.Error()),
 		)
 	}
