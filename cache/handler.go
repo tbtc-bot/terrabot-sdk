@@ -218,19 +218,17 @@ func (rh *RedisHandler) ReadSymbolMinQty(symbol string) float64 {
 
 func (rh *RedisHandler) ReadSymbolInfo(symbol string) (*terrabot.SymbolInfo, error) {
 
-	key := GetRedisKeyExchangeInfo(rh.Exchange)
+	key := GetRedisKeySymbolInfo(rh.Exchange, symbol)
 	exchangeInfoJson, err := rh.Client.Get(key)
 	if err != nil {
-		return nil, fmt.Errorf("could not read exchange info from Redis")
+		return nil, fmt.Errorf("could not read symbol info from Redis")
 	}
-	var exchangeInfo terrabot.ExchangeInfo
-	if err := json.Unmarshal([]byte(exchangeInfoJson), &exchangeInfo); err != nil {
-		return nil, fmt.Errorf("could not unmarshal exchange info")
+
+	var symbolInfo terrabot.SymbolInfo
+	if err := json.Unmarshal([]byte(exchangeInfoJson), &symbolInfo); err != nil {
+		return nil, fmt.Errorf("could not unmarshal symbol info")
 	}
-	symbolInfo, ok := exchangeInfo[symbol]
-	if !ok {
-		return nil, fmt.Errorf("could not find symbol %s in exchange info", symbol)
-	}
+
 	return &symbolInfo, nil
 }
 

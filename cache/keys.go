@@ -3,8 +3,8 @@ package cache
 import "github.com/tbtc-bot/terrabot-sdk"
 
 const (
-	MARK_PRICE    = "markPrice"
-	EXCHANGE_INFO = "exchangeInfo"
+	MARK_PRICE  = "markPrice"
+	SYMBOL_INFO = "symbolInfo"
 
 	STRATEGY    = "strategy"
 	OPEN_ORDERS = "openOrders"
@@ -21,8 +21,8 @@ func GetRedisKeyMarkPrice(exchange string, symbol string) string {
 	return exchange + "-" + MARK_PRICE + "-" + symbol // e.g. binancef-markPrice-BTCUSDT
 }
 
-func GetRedisKeyExchangeInfo(exchange string) string {
-	return exchange + "-" + EXCHANGE_INFO // e.g. binancef-exchangeInfo
+func GetRedisKeySymbolInfo(exchange string, symbol string) string {
+	return exchange + "-" + SYMBOL_INFO + "-" + symbol // e.g. binancef-symbolInfo-BTCUSDT
 }
 
 //
