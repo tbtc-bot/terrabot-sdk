@@ -206,6 +206,9 @@ func (rh *RedisHandler) ReadSymbolQtyPrecision(symbol string) int {
 		)
 		return 1
 	}
+	if symbolInfo.QuantityPrecision == 0 {
+		return 1
+	}
 	return symbolInfo.QuantityPrecision
 }
 
