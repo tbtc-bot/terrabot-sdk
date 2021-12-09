@@ -29,7 +29,7 @@ func (sh *StrategyHandler) addGridOrder(session terrabot.Session, order *terrabo
 	pricePrecision := symbolInfo.PricePrecision
 	order.Price = util.RoundFloatWithPrecision(order.Price, pricePrecision)
 	order.TriggerPrice = util.RoundFloatWithPrecision(order.TriggerPrice, pricePrecision)
-	quantityPrecision := symbolInfo.QuantityPrecision
+	quantityPrecision := 2 // TODO symbolInfo.QuantityPrecision
 	order.Amount = util.RoundFloatWithPrecision(order.Amount, quantityPrecision)
 
 	var id string

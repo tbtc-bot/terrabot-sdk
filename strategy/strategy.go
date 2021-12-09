@@ -405,29 +405,21 @@ func (sh *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
 	pars := session.Strategy.Parameters
 	var s0 float64 // initial order size of the token
 	if pars.OrderBaseType == terrabot.OrderBaseTypePerc {
-		s0 = (balance / markPrice) * (pars.OrderSize / 100)
+		s0 = balance * (pars.OrderSize / 100)
 
 	} else if pars.OrderBaseType == terrabot.OrderBaseTypeFix {
-		s0 = pars.OrderSize / markPrice
+		s0 = pars.OrderSize
 
 	} else {
 		return fmt.Errorf("invalid order base type %s", pars.OrderBaseType)
 	}
 
 	// check minimum order
-	quantityPrecision := sh.ch.ReadSymbolQtyPrecision(symbol)
-	s0 = util.RoundFloatWithPrecision(s0, quantityPrecision) // initial order size
-	s0usd := s0 * markPrice                                  // initial order size in dollars
-	if s0usd < 5 {
+	if s0 < 5 {
 		sh.commandHardStop(session)
-		return fmt.Errorf("initial order after rounding is %f %s, but it must be at least 5 %s", s0usd, asset, asset)
+		return fmt.Errorf("initial order after rounding is %f %s, but it must be at least 5 %s", s0, asset, asset)
 	}
 
-	minQty := sh.ch.ReadSymbolMinQty(symbol)
-	if s0 < minQty {
-		sh.commandHardStop(session)
-		return fmt.Errorf("initial order after rounding is %f %s, but it must be at least %f %s", s0usd, symbol, minQty, symbol)
-	}
 	////////////////////////////////////////////////////////////////////////
 
 	// execute market order
