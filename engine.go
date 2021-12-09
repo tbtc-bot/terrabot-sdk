@@ -15,7 +15,7 @@ const (
 	SideBuy  SideType = "buy"
 	SideSell SideType = "sell"
 
-	// TODO change this
+	PositionSideNet   PositionSideType = "NET"
 	PositionSideLong  PositionSideType = "LONG"
 	PositionSideShort PositionSideType = "SHORT"
 )

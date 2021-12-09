@@ -426,7 +426,7 @@ func (sh *StrategyHandler) StartStrategy(session terrabot.Session) (err error) {
 	var order *terrabot.Order
 	switch session.Strategy.PositionSide {
 
-	case terrabot.PositionSideLong:
+	case terrabot.PositionSideLong, terrabot.PositionSideNet:
 		order = terrabot.NewOrderMarket(symbol, terrabot.SideBuy, terrabot.PositionSideLong, s0)
 		if err = sh.addMarketOrder(session, order); err != nil {
 			return fmt.Errorf("%s could not add market order %s: %s", session.BotId, order.String(), err)

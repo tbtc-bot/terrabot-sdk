@@ -79,7 +79,7 @@ func (s *Strategy) GridOrders(balance float64, startPrice float64) ([]*Order, er
 		return nil, fmt.Errorf("order base type %s not recognized", s.Parameters.OrderBaseType)
 	}
 
-	if s.PositionSide == PositionSideLong {
+	if s.PositionSide == PositionSideLong || s.PositionSide == PositionSideNet {
 
 		// first grid
 		p_1 := p0 * (1 - s.Parameters.GridStep/100)
@@ -153,7 +153,7 @@ func (s *Strategy) TakeProfitOrder(position Position, gridSize float64) (*Order,
 
 	if s.Parameters.CallBackRate < 0.1 {
 		// limit order
-		if s.PositionSide == PositionSideLong {
+		if s.PositionSide == PositionSideLong || s.PositionSide == PositionSideNet {
 			takeProfitPrice := position.EntryPrice * (1 + TakeStep/100)
 			return NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice), nil
 
