@@ -4,4 +4,5 @@ package exchange
 const (
 	BinanceFutures string = "binancef"
 	OkexFutures    string = "okexf"
+	OkexMargin     string = "okexm"
 )

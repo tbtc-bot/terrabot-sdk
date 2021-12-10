@@ -225,8 +225,8 @@ func (sh *Strategy) HandleOrderUpdate(ctx context.Context, session terrabot.Sess
 			strategy, err := sh.ReadStrategy(session)
 			if err == nil {
 				if strategy.Status == terrabot.StatusSoftStop {
-					msg := fmt.Sprintf("SOFT STOP %s realized profit (%s/%s) %s USDT",
-						event.Symbol, lastGridReached, fmt.Sprint(strategy.Parameters.GridOrders), event.RealizedPnL)
+					msg := fmt.Sprintf("SOFT STOP %s-%s realized profit (%s/%s) %s USDT",
+						event.Symbol, event.PositionSide, lastGridReached, fmt.Sprint(strategy.Parameters.GridOrders), event.RealizedPnL)
 
 					sh.th.SendTelegramMessage(queue.MsgInfo, queue.RmqMessageEvent{
 						UserId:  session.UserId,
