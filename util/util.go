@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"math"
 	"strings"
 )
@@ -42,12 +41,9 @@ func GetAssetFromSymbol(symbol string) (string, error) {
 	} else if symbol[len(symbol)-3:] == "BNB" {
 		return "BNB", nil
 
-	} else if symbol[len(symbol)-4:] == "SWAP" {
+	} else {
 		// TODO change this
 		return "USDT", nil
-
-	} else {
-		return "", fmt.Errorf("asset not recognized in symbol %s", symbol)
 	}
 }
 
