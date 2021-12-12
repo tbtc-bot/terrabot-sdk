@@ -10,7 +10,8 @@ type Session struct {
 	ApiKey    string
 	ApiSecret string
 	Password  string
-	Strategy  Strategy
+	Strategy  *Strategy
+	Simulated bool
 }
 
 func (s Session) String() string {
@@ -18,12 +19,14 @@ func (s Session) String() string {
 		s.BotId, s.UserId, s.Strategy.Symbol, s.Strategy.PositionSide, s.Strategy.Status)
 }
 
-func NewSession(botId string, userId, apiKey string, apiSecret string, strategy Strategy) *Session {
+func NewSession(botId string, userId, apiKey string, apiSecret string, password string, simulated bool) *Session {
 	return &Session{
 		BotId:     botId,
 		UserId:    userId,
 		ApiKey:    apiKey,
 		ApiSecret: apiSecret,
-		Strategy:  strategy,
+		Password:  password,
+		Strategy:  &Strategy{},
+		Simulated: simulated,
 	}
 }
