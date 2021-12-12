@@ -32,7 +32,7 @@ type Worker struct {
 	ch *cache.RedisHandler
 	dh *database.FirestoreHandler
 	eh exchange.ExchangeConnector
-	sh *strategy.Strategy
+	sh *strategy.StrategyHandler
 	th *telegram.TelegramHandler
 
 	Logger *zap.Logger

@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (sh *Strategy) ParseCommandEvent(eventRaw []byte) {
+func (sh *StrategyHandler) ParseCommandEvent(eventRaw []byte) {
 	var err error
 
 	var event queue.RmqApiServerCommandEvent
@@ -176,7 +176,7 @@ func (sh *Strategy) ParseCommandEvent(eventRaw []byte) {
 	}
 }
 
-func (sh *Strategy) commandStart(session terrabot.Session) (err error) {
+func (sh *StrategyHandler) commandStart(session terrabot.Session) (err error) {
 	lastStatus := session.Strategy.Status
 
 	session.Strategy.Status = terrabot.StatusStart
@@ -215,7 +215,7 @@ func (sh *Strategy) commandStart(session terrabot.Session) (err error) {
 	}
 }
 
-func (sh *Strategy) commandStop(session terrabot.Session) error {
+func (sh *StrategyHandler) commandStop(session terrabot.Session) error {
 	session.Strategy.Status = terrabot.StatusStop
 
 	if err := sh.ch.WriteStrategy(session); err != nil {
@@ -229,7 +229,7 @@ func (sh *Strategy) commandStop(session terrabot.Session) error {
 	return sh.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusStop)
 }
 
-func (sh *Strategy) commandHardStop(session terrabot.Session) error {
+func (sh *StrategyHandler) commandHardStop(session terrabot.Session) error {
 	session.Strategy.Status = terrabot.StatusHardStop
 
 	if err := sh.ch.WriteStrategy(session); err != nil {
@@ -253,7 +253,7 @@ func (sh *Strategy) commandHardStop(session terrabot.Session) error {
 	return nil
 }
 
-func (sh *Strategy) commandSoftStop(session terrabot.Session) error {
+func (sh *StrategyHandler) commandSoftStop(session terrabot.Session) error {
 	if session.Strategy.Status == terrabot.StatusStart {
 		session.Strategy.Status = terrabot.StatusSoftStop
 	} else {
@@ -268,7 +268,7 @@ func (sh *Strategy) commandSoftStop(session terrabot.Session) error {
 	return sh.dh.UpdateStrategyStatus(session.BotId, session.Strategy.Symbol, session.Strategy.PositionSide, terrabot.StatusSoftStop)
 }
 
-func (sh *Strategy) cancelAllOpenOrders(session terrabot.Session) error {
+func (sh *StrategyHandler) cancelAllOpenOrders(session terrabot.Session) error {
 
 	openOrders, err := sh.getOpenOrders(session)
 	if err != nil {
