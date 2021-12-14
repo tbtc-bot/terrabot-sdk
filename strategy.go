@@ -155,11 +155,15 @@ func (s *Strategy) TakeProfitOrder(position Position, gridSize float64) (*Order,
 		// limit order
 		if s.PositionSide == PositionSideLong {
 			takeProfitPrice := position.EntryPrice * (1 + TakeStep/100)
-			return NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice), nil
+			order := NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice)
+			order.ReduceOnly = true
+			return order, nil
 
 		} else if s.PositionSide == PositionSideShort {
 			takeProfitPrice := position.EntryPrice * (1 - TakeStep/100)
-			return NewOrderLimit(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice), nil
+			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice)
+			order.ReduceOnly = true
+			return order, nil
 
 		} else {
 			return nil, fmt.Errorf("position side %s not recognized", s.PositionSide)
