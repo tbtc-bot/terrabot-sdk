@@ -237,7 +237,7 @@ func (rh *RedisHandler) ReadMarkPrice(symbol string) (float64, error) {
 	key := GetRedisKeyMarkPrice(rh.Exchange, symbol)
 	priceStr, err := rh.Client.Get(key)
 	if err != nil {
-		return 0, fmt.Errorf("coulf not get mark price from redis with key %s: %s", key, err)
+		return 0, fmt.Errorf("could not get mark price from redis with key %s: %s", key, err)
 	}
 
 	return strconv.ParseFloat(priceStr, 64)
