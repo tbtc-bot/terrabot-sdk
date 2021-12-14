@@ -42,6 +42,9 @@ func GetAssetFromSymbol(symbol string) (string, error) {
 	} else if symbol[len(symbol)-3:] == "BNB" {
 		return "BNB", nil
 
+	} else if symbol[len(symbol)-3:] == "BTC" {
+		return "BTC", nil
+
 	} else {
 		return "", fmt.Errorf("asset not recognized in symbol %s", symbol)
 	}
