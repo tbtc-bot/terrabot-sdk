@@ -1,6 +1,9 @@
 package cache
 
-import "github.com/tbtc-bot/terrabot-sdk"
+import (
+	"github.com/tbtc-bot/terrabot-sdk"
+	_exchange "github.com/tbtc-bot/terrabot-sdk/exchange"
+)
 
 const (
 	MARK_PRICE  = "markPrice"
@@ -23,6 +26,10 @@ func GetRedisKeyMarkPrice(exchange string, symbol string) string {
 
 func GetRedisKeySymbolInfo(exchange string, symbol string) string {
 	return exchange + "-" + SYMBOL_INFO + "-" + symbol // e.g. binancef-symbolInfo-BTCUSDT
+}
+
+func GetRedisKeyWalletBalance(exchange string, botId string) string {
+	return exchange + "-" + botId + "-" + WALLET_BALANCE // e.g. binancef-botId-walletBalance
 }
 
 //
@@ -50,12 +57,17 @@ func GetRedisKeyGridSize(exchange string, session terrabot.Session) string {
 	return GetRedisKeyBase(exchange, session) + "-" + GRID_SIZE // e.g. binancef-botId-BTCUSDT-LONG-gridSize
 }
 
-//
-func GetRedisKeyWalletBalance(exchange string, botId string) string {
-	return exchange + "-" + botId + "-" + WALLET_BALANCE // e.g. binancef-botId-walletBalance
-}
-
-//
 func GetRedisKeyBase(exchange string, session terrabot.Session) string {
-	return exchange + "-" + session.BotId + "-" + session.Strategy.Symbol + "-" + string(session.Strategy.PositionSide) // e.g. binancef-botId-BTCUSDT-LONG
+
+	switch exchange {
+
+	case _exchange.BinanceFutures:
+		return exchange + "-" + session.BotId + "-" + session.Strategy.Symbol + "-" + string(session.Strategy.PositionSide) // e.g. binancef-botId-BTCUSDT-LONG
+
+	case _exchange.OkexMargin, _exchange.OkexFutures:
+		return exchange + "-" + session.BotId + "-" + session.Strategy.Symbol // e.g. okexf-botId-BTCUSDT
+
+	default:
+		return ""
+	}
 }
