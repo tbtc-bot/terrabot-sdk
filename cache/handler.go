@@ -147,8 +147,6 @@ func (rh *RedisHandler) DeleteAllKeys(session terrabot.Session) {
 	rh.Client.Del(GetRedisKeyPosition(rh.Exchange, session))
 	rh.Client.Del(GetRedisKeyTpId(rh.Exchange, session))
 	rh.Client.Del(GetRedisKeyMetadata(rh.Exchange, session))
-	rh.Client.Del(GetRedisKeyGridSize(rh.Exchange, session))
-
 }
 
 // WALLET BALANCE
@@ -287,23 +285,4 @@ func (rh *RedisHandler) WriteMetadata(session terrabot.Session, metadata terrabo
 		)
 		return
 	}
-}
-
-// GRID SIZE
-/* Used for TakeStepLimit */
-func (rh *RedisHandler) ReadGridSize(session terrabot.Session) (float64, error) {
-
-	key := GetRedisKeyGridSize(rh.Exchange, session)
-	gridSizeString, err := rh.Client.Get(key)
-	if err != nil {
-		return 0, fmt.Errorf("could not get from redis grid size with key %s: %s", key, err)
-	}
-	gridSize, _ := strconv.ParseFloat(gridSizeString, 64)
-	return gridSize, nil
-}
-
-func (rh *RedisHandler) WriteGridSize(session terrabot.Session, gridSize float64) error {
-
-	key := GetRedisKeyGridSize(rh.Exchange, session)
-	return rh.Client.Set(key, fmt.Sprint(gridSize))
 }

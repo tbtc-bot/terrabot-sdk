@@ -14,7 +14,6 @@ const (
 	POSITION    = "position"
 	TP_ID       = "tpId"
 	METADATA    = "metadata"
-	GRID_SIZE   = "gridSize"
 
 	WALLET_BALANCE = "walletBalance"
 )
@@ -51,10 +50,6 @@ func GetRedisKeyTpId(exchange string, session terrabot.Session) string {
 
 func GetRedisKeyMetadata(exchange string, session terrabot.Session) string {
 	return GetRedisKeyBase(exchange, session) + "-" + METADATA // e.g. binancef-botId-BTCUSDT-LONG-metadata
-}
-
-func GetRedisKeyGridSize(exchange string, session terrabot.Session) string {
-	return GetRedisKeyBase(exchange, session) + "-" + GRID_SIZE // e.g. binancef-botId-BTCUSDT-LONG-gridSize
 }
 
 func GetRedisKeyBase(exchange string, session terrabot.Session) string {

@@ -23,23 +23,22 @@ const (
 )
 
 type StrategyParameters struct {
-	GridOrders             uint          `json:"gridOrders"`
-	GridStep               float64       `json:"gridStep"`
-	OrderBaseType          OrderBaseType `json:"orderBaseType"`
-	StepFactor             float64       `json:"stepFactor"`
-	OrderSize              float64       `json:"orderSize"`
-	OrderType              string        `json:"orderType"`
-	OrderFactor            float64       `json:"orderFactor"`
-	TakeStep               float64       `json:"takeStep"`
-	TakeStepLimit          float64       `json:"takeStepLimit"`
-	TakeStepLimitThreshold float64       `json:"takeStepLimitThreshold"`
-	StopLoss               float64       `json:"stopLoss"`
-	CallBackRate           float64       `json:"callBack"`
+	GridOrders    uint          `json:"gridOrders"`
+	GridStep      float64       `json:"gridStep"`
+	OrderBaseType OrderBaseType `json:"orderBaseType"`
+	StepFactor    float64       `json:"stepFactor"`
+	OrderSize     float64       `json:"orderSize"`
+	OrderType     string        `json:"orderType"`
+	OrderFactor   float64       `json:"orderFactor"`
+	TakeStep      float64       `json:"takeStep"`
+	TakeStepLimit float64       `json:"takeStepLimit"`
+	StopLoss      float64       `json:"stopLoss"`
+	CallBackRate  float64       `json:"callBack"`
 }
 
 func (sp StrategyParameters) String() string {
-	return fmt.Sprintf("[GridOrders:%d, GridSteps:%.2f, OrderBaseType:%s, StepFactor :%.2f, OrderSize:%.2f, OrderFactor:%.2f, TakeStep:%.2f, StopLoss:%.2f, CallBackRate:%.2f, TakeStepLimit:%.2f, TakeStepLimitThreshold:%.2f]",
-		sp.GridOrders, sp.GridStep, sp.OrderBaseType, sp.StepFactor, sp.OrderSize, sp.OrderFactor, sp.TakeStep, sp.StopLoss, sp.CallBackRate, sp.TakeStepLimit, sp.TakeStepLimitThreshold)
+	return fmt.Sprintf("[GridOrders:%d, GridSteps:%.2f, OrderBaseType:%s, StepFactor :%.2f, OrderSize:%.2f, OrderFactor:%.2f, TakeStep:%.2f, StopLoss:%.2f, CallBackRate:%.2f, TakeStepLimit:%.2f]",
+		sp.GridOrders, sp.GridStep, sp.OrderBaseType, sp.StepFactor, sp.OrderSize, sp.OrderFactor, sp.TakeStep, sp.StopLoss, sp.CallBackRate, sp.TakeStepLimit)
 }
 
 type Strategy struct {
@@ -142,25 +141,20 @@ func (s *Strategy) GridOrders(balance float64, startPrice float64) ([]*Order, er
 	return orders, nil
 }
 
-func (s *Strategy) TakeProfitOrder(position Position, gridSize float64) (*Order, error) {
-	var TakeStep float64
-	if math.Abs(position.Size) >= gridSize*s.Parameters.TakeStepLimitThreshold && s.Parameters.TakeStepLimitThreshold > 0 && gridSize > 0 {
-		// use TakeStepLimit if the position size is greater than the grid size * TakeStepLimitThreshold
-		TakeStep = s.Parameters.TakeStepLimit
-	} else {
-		TakeStep = s.Parameters.TakeStep
-	}
+func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
+
+	takeStep := s.Parameters.TakeStep
 
 	if s.Parameters.CallBackRate < 0.1 {
 		// limit order
 		if s.PositionSide == PositionSideLong {
-			takeProfitPrice := position.EntryPrice * (1 + TakeStep/100)
+			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice)
 			order.ReduceOnly = true
 			return order, nil
 
 		} else if s.PositionSide == PositionSideShort {
-			takeProfitPrice := position.EntryPrice * (1 - TakeStep/100)
+			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice)
 			order.ReduceOnly = true
 			return order, nil
@@ -171,11 +165,11 @@ func (s *Strategy) TakeProfitOrder(position Position, gridSize float64) (*Order,
 	} else {
 		// trailing profit order
 		if s.PositionSide == PositionSideLong {
-			takeProfitPrice := position.EntryPrice * (1 + TakeStep/100)
+			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			return NewOrderTrailing(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice, s.Parameters.CallBackRate), nil
 
 		} else if s.PositionSide == PositionSideShort {
-			takeProfitPrice := position.EntryPrice * (1 - TakeStep/100)
+			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			return NewOrderTrailing(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice, s.Parameters.CallBackRate), nil
 
 		} else {
