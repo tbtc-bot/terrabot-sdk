@@ -241,8 +241,8 @@ func (rh *RedisHandler) ReadMarkPrice(symbol string) (float64, error) {
 	return strconv.ParseFloat(priceStr, 64)
 }
 
-func (rh *RedisHandler) RedisKey(session terrabot.Session) string {
-	return rh.Exchange + "-" + session.BotId + "-" + session.Strategy.Symbol + "-" + string(session.Strategy.PositionSide)
+func (rh *RedisHandler) RedisKeyInfo(session terrabot.Session) string {
+	return GetRedisKeyBase(rh.Exchange, session)
 }
 
 // METADATA
