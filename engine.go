@@ -44,19 +44,19 @@ func (order Order) String() string {
 	switch order.Type {
 
 	case OrderLimit:
-		return fmt.Sprintf("type %s, symbol %s, side %s, position side %s, price %.2f, amount %.2f, reduceOnly %t",
+		return fmt.Sprintf("type %s, symbol %s, side %s, position side %s, price %f, amount %f, reduceOnly %t",
 			order.Type, order.Symbol, order.Side, order.PositionSide, order.Price, order.Amount, order.ReduceOnly)
 
 	case OrderMarket:
-		return fmt.Sprintf("type %s, symbol %s, side %s, position side %s, amount %.2f",
+		return fmt.Sprintf("type %s, symbol %s, side %s, position side %s, amount %f",
 			order.Type, order.Symbol, order.Side, order.PositionSide, order.Amount)
 
 	case OrderStopMarket:
-		return fmt.Sprintf("type %s, symbol %s, side %s, position side %s, trigger price %.6f, amount %.2f, ID %s",
+		return fmt.Sprintf("type %s, symbol %s, side %s, position side %s, trigger price %f, amount %f, ID %s",
 			order.Type, order.Symbol, order.Side, order.PositionSide, order.TriggerPrice, order.Amount, order.ID)
 
 	case OrderTrailing:
-		return fmt.Sprintf("type %s, symbol %s, side %s, position side %s, trigger price %.2f, amount %.2f, callback rate %.2f",
+		return fmt.Sprintf("type %s, symbol %s, side %s, position side %s, trigger price %f, amount %f, callback rate %f",
 			order.Type, order.Symbol, order.Side, order.PositionSide, order.TriggerPrice, order.Amount, order.CallbackRate)
 
 	default:
