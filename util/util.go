@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 )
 
@@ -56,4 +57,8 @@ func ComparePositionSides(positionSideBinance string, positionSide string) bool 
 	s2 := strings.ToUpper(positionSide)
 	return s1 == s2
 
+}
+
+func Float64ToString(x float64) string {
+	return strconv.FormatFloat(x, 'f', -1, 64)
 }
