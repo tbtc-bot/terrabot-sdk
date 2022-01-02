@@ -30,6 +30,7 @@ type ExchangeConnector interface {
 
 	GetOpenOrders(session terrabot.Session, symbol string, positionSide terrabot.PositionSideType) ([]string, error)
 	GetPositionAmount(session terrabot.Session, symbol string, positionSide terrabot.PositionSideType) (float64, error)
+	ClosePosition(session terrabot.Session, symbol string, currency string) error
 
 	GetBalance(session terrabot.Session) (terrabot.WalletBalance, error)
 	GetBalanceRetry(session terrabot.Session, attempts int, sleep time.Duration) (balance terrabot.WalletBalance, err error)
