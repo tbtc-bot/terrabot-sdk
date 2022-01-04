@@ -32,7 +32,7 @@ func ChunkSlice(slice []int64, chunkSize int) [][]int64 {
 	return chunks
 }
 
-func GetAssetFromSymbol(symbol string) (string, error) {
+func GetCurrencyFromSymbol(symbol string) (string, error) {
 
 	if symbol[len(symbol)-4:] == "USDT" {
 		return "USDT", nil
