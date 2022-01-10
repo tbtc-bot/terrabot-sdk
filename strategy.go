@@ -85,7 +85,7 @@ func (s *Strategy) GridOrders(balance float64, startPrice float64) ([]*Order, er
 		s_1 := s0
 		p_2 := p0
 		order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_1, p_1)
-		order.GridNumber = 1
+		order.Tag = "1"
 		orders = append(orders, order)
 
 		// other grids
@@ -93,7 +93,7 @@ func (s *Strategy) GridOrders(balance float64, startPrice float64) ([]*Order, er
 			p_i := p_1 - (p_2-p_1)*s.Parameters.StepFactor
 			s_i := s_1 * s.Parameters.OrderFactor
 			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_i, p_i)
-			order.GridNumber = int64(i)
+			order.Tag = fmt.Sprint(i)
 			orders = append(orders, order)
 			p_2 = p_1
 			p_1 = p_i
@@ -114,7 +114,7 @@ func (s *Strategy) GridOrders(balance float64, startPrice float64) ([]*Order, er
 		s_1 := s0
 		p_2 := p0
 		order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_1, p_1)
-		order.GridNumber = 1
+		order.Tag = "1"
 		orders = append(orders, order)
 
 		// other grids
@@ -122,7 +122,7 @@ func (s *Strategy) GridOrders(balance float64, startPrice float64) ([]*Order, er
 			p_i := p_1 + (p_1-p_2)*s.Parameters.StepFactor
 			s_i := s_1 * s.Parameters.OrderFactor
 			order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_i, p_i)
-			order.GridNumber = int64(i)
+			order.Tag = fmt.Sprint(i)
 			orders = append(orders, order)
 			p_2 = p_1
 			p_1 = p_i

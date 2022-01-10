@@ -41,4 +41,5 @@ type RmqOrderUpdateData struct {
 	OriginalPrice  float64 `json:"originalPrice"`
 	ExecutionPrice float64 `json:"executionPrice"`
 	RealizedPnl    float64 `json:"realizedPnl"`
+	Tag            string  `json:"tag"`
 }
