@@ -32,6 +32,7 @@ type Order struct {
 	CallbackRate float64          `json:"callbackRate"`
 	GridNumber   int64            `json:"gridNumber"`
 	ReduceOnly   bool             `json:"reduceOnly"` // this is needed for the net position mode
+	Tag          string           `json:"tag"`
 }
 
 type OpenOrders map[string]Order

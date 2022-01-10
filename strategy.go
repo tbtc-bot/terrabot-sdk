@@ -151,12 +151,14 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice)
 			order.ReduceOnly = true
+			order.Tag = "tp"
 			return order, nil
 
 		} else if s.PositionSide == PositionSideShort {
 			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice)
 			order.ReduceOnly = true
+			order.Tag = "tp"
 			return order, nil
 
 		} else {
