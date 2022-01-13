@@ -10,8 +10,9 @@ type StrategyStatus string
 type OrderBaseType string
 
 const (
-	StrategyDummy      StrategyType = "Dummy"
-	StrategyMartingala StrategyType = "Martingala"
+	StrategyBoth  StrategyType = "both"
+	StrategyLong  StrategyType = "long"
+	StrategyShort StrategyType = "short"
 
 	StatusStart    StrategyStatus = "start"
 	StatusStop     StrategyStatus = "stop"
