@@ -3,6 +3,8 @@ package terrabot
 import (
 	"fmt"
 	"math"
+
+	"github.com/tbtc-bot/terrabot-sdk/data_types"
 )
 
 type StrategyType string
@@ -79,67 +81,103 @@ func (s *Strategy) GridOrders(exchange string, balance float64, startPrice float
 		return nil, fmt.Errorf("order base type %s not recognized", s.Parameters.OrderBaseType)
 	}
 
-	if s.PositionSide == PositionSideLong {
+	// TODO all exchanges should check strategy type instead of position side
+	switch exchange {
 
-		// first grid
-		p_1 := p0 * (1 - s.Parameters.GridStep/100)
-		s_1 := s0
-		p_2 := p0
-		order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_1, p_1)
-		order.Tag = "1"
-		orders = append(orders, order)
-
-		// other grids
-		for i := 2; i < int(s.Parameters.GridOrders)+1; i++ {
-			p_i := p_1 - (p_2-p_1)*s.Parameters.StepFactor
-			s_i := s_1 * s.Parameters.OrderFactor
-			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_i, p_i)
-			order.Tag = fmt.Sprint(i)
-			orders = append(orders, order)
-			p_2 = p_1
-			p_1 = p_i
-			s_1 = s_i
+	case data_types.BinanceFutures:
+		switch s.PositionSide {
+		case PositionSideLong:
+			orders = append(orders, s.getOrdersLong(p0, s0, true)...)
+		case PositionSideShort:
+			orders = append(orders, s.getOrdersShort(p0, s0, true)...)
+		default:
+			return nil, fmt.Errorf("position side %s not recognized", s.PositionSide)
 		}
 
-		// set stoploss
-		if s.Parameters.StopLoss > 0 {
-			stopLossPrice := p_1 * (1 - s.Parameters.StopLoss/100)
-			stopLoss := NewOrderStopMarket(s.Symbol, SideSell, PositionSideLong, 0, stopLossPrice)
-			orders = append(orders, stopLoss)
+	case data_types.OkexMargin, data_types.OkexFutures:
+		switch s.Type {
+		case StrategyLong:
+			orders = append(orders, s.getOrdersLong(p0, s0, false)...)
+		case StrategyShort:
+			orders = append(orders, s.getOrdersShort(p0, s0, false)...)
+		case StrategyBoth:
+			orders = append(orders, s.getOrdersLong(p0, s0, false)...)
+			orders = append(orders, s.getOrdersShort(p0, s0, false)...)
+		default:
+			return nil, fmt.Errorf("strategy type %s not recognized", s.Type)
 		}
 
-	} else if s.PositionSide == PositionSideShort {
-
-		// first grid
-		p_1 := p0 * (1 + s.Parameters.GridStep/100)
-		s_1 := s0
-		p_2 := p0
-		order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_1, p_1)
-		order.Tag = "1"
-		orders = append(orders, order)
-
-		// other grids
-		for i := 2; i < int(s.Parameters.GridOrders)+1; i++ {
-			p_i := p_1 + (p_1-p_2)*s.Parameters.StepFactor
-			s_i := s_1 * s.Parameters.OrderFactor
-			order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_i, p_i)
-			order.Tag = fmt.Sprint(i)
-			orders = append(orders, order)
-			p_2 = p_1
-			p_1 = p_i
-			s_1 = s_i
-		}
-
-		// set stoploss
-		if s.Parameters.StopLoss > 0 {
-			stopLossPrice := p_1 * (1 + s.Parameters.StopLoss/100)
-			stopLoss := NewOrderStopMarket(s.Symbol, SideBuy, PositionSideShort, 0, stopLossPrice)
-			orders = append(orders, stopLoss)
-		}
-	} else {
-		return nil, fmt.Errorf("position side %s not recognized", s.PositionSide)
+	default:
+		return nil, fmt.Errorf("exchange %s not recognized", exchange)
 	}
+
 	return orders, nil
+}
+
+func (s *Strategy) getOrdersLong(p0 float64, s0 float64, stopLoss bool) []*Order {
+	orders := []*Order{}
+
+	// first grid
+	p_1 := p0 * (1 - s.Parameters.GridStep/100)
+	s_1 := s0
+	p_2 := p0
+	order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_1, p_1)
+	order.Tag = "1"
+	orders = append(orders, order)
+
+	// other grids
+	for i := 2; i < int(s.Parameters.GridOrders)+1; i++ {
+		p_i := p_1 - (p_2-p_1)*s.Parameters.StepFactor
+		s_i := s_1 * s.Parameters.OrderFactor
+		order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_i, p_i)
+		order.Tag = fmt.Sprint(i)
+		orders = append(orders, order)
+		p_2 = p_1
+		p_1 = p_i
+		s_1 = s_i
+	}
+
+	// set stoploss
+	if stopLoss && s.Parameters.StopLoss > 0 {
+		stopLossPrice := p_1 * (1 - s.Parameters.StopLoss/100)
+		stopLoss := NewOrderStopMarket(s.Symbol, SideSell, PositionSideLong, 0, stopLossPrice)
+		orders = append(orders, stopLoss)
+	}
+
+	return orders
+}
+
+func (s *Strategy) getOrdersShort(p0 float64, s0 float64, stopLoss bool) []*Order {
+	orders := []*Order{}
+
+	// first grid
+	p_1 := p0 * (1 + s.Parameters.GridStep/100)
+	s_1 := s0
+	p_2 := p0
+	order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_1, p_1)
+	order.Tag = "1"
+	orders = append(orders, order)
+
+	// other grids
+	for i := 2; i < int(s.Parameters.GridOrders)+1; i++ {
+		p_i := p_1 + (p_1-p_2)*s.Parameters.StepFactor
+		s_i := s_1 * s.Parameters.OrderFactor
+		order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_i, p_i)
+		order.Tag = fmt.Sprint(i)
+		orders = append(orders, order)
+		p_2 = p_1
+		p_1 = p_i
+		s_1 = s_i
+	}
+
+	// set stoploss
+	if stopLoss && s.Parameters.StopLoss > 0 {
+		stopLossPrice := p_1 * (1 + s.Parameters.StopLoss/100)
+		stopLoss := NewOrderStopMarket(s.Symbol, SideBuy, PositionSideShort, 0, stopLossPrice)
+		orders = append(orders, stopLoss)
+	}
+
+	return orders
 }
 
 func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {

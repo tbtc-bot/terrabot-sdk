@@ -1,4 +1,4 @@
-package exchange
+package data_types
 
 // Available exchange markets
 const (

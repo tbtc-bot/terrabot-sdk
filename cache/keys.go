@@ -2,7 +2,7 @@ package cache
 
 import (
 	"github.com/tbtc-bot/terrabot-sdk"
-	_exchange "github.com/tbtc-bot/terrabot-sdk/exchange"
+	"github.com/tbtc-bot/terrabot-sdk/data_types"
 )
 
 const (
@@ -56,10 +56,10 @@ func GetRedisKeyBase(exchange string, session terrabot.Session) string {
 
 	switch exchange {
 
-	case _exchange.BinanceFutures:
+	case data_types.BinanceFutures:
 		return exchange + "-" + session.BotId + "-" + session.Strategy.Symbol + "-" + string(session.Strategy.PositionSide) // e.g. binancef-botId-BTCUSDT-LONG
 
-	case _exchange.OkexMargin, _exchange.OkexFutures:
+	case data_types.OkexMargin, data_types.OkexFutures:
 		return exchange + "-" + session.BotId + "-" + session.Strategy.Symbol // e.g. okexf-botId-BTCUSDT
 
 	default:
