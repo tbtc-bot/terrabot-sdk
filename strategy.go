@@ -65,7 +65,7 @@ func (s Strategy) String() string {
 		s.Type, s.Symbol, s.PositionSide, s.Status, s.Parameters.String())
 }
 
-func (s *Strategy) GridOrders(balance float64, startPrice float64) ([]*Order, error) {
+func (s *Strategy) GridOrders(exchange string, balance float64, startPrice float64) ([]*Order, error) {
 	orders := []*Order{}
 	p0 := startPrice
 

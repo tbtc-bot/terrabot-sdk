@@ -5,6 +5,7 @@ import (
 )
 
 type Session struct {
+	Exchange  string
 	BotId     string
 	UserId    string
 	ApiKey    string
@@ -15,12 +16,13 @@ type Session struct {
 }
 
 func (s Session) String() string {
-	return fmt.Sprintf("botId %s, userId %s, symbol %s, positionSide %s, status %s",
-		s.BotId, s.UserId, s.Strategy.Symbol, s.Strategy.PositionSide, s.Strategy.Status)
+	return fmt.Sprintf("exchange %s, botId %s, userId %s, symbol %s, positionSide %s, status %s",
+		s.Exchange, s.BotId, s.UserId, s.Strategy.Symbol, s.Strategy.PositionSide, s.Strategy.Status)
 }
 
-func NewSession(botId string, userId, apiKey string, apiSecret string, password string, simulated bool) *Session {
+func NewSession(exchange string, botId string, userId, apiKey string, apiSecret string, password string, simulated bool) *Session {
 	return &Session{
+		Exchange:  exchange,
 		BotId:     botId,
 		UserId:    userId,
 		ApiKey:    apiKey,
