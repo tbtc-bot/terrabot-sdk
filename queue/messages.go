@@ -36,6 +36,7 @@ type RmqTpEvent struct {
 	BotId           string `json:"botId"`
 	UserId          string `json:"userId"`
 	ExchangeType    string `json:"exchangeType"`
+	QuoteAsset      string `json:"quoteAsset"`
 	Symbol          string `json:"symbol"`
 	EventType       string `json:"eventType"`
 	EventSide       string `json:"eventSide"`
