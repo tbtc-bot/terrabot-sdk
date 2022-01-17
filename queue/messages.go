@@ -35,12 +35,15 @@ type RmqMessageEvent struct {
 type RmqTpEvent struct {
 	BotId           string `json:"botId"`
 	UserId          string `json:"userId"`
+	ExchangeType    string `json:"exchangeType"`
 	Symbol          string `json:"symbol"`
 	EventType       string `json:"eventType"`
 	EventSide       string `json:"eventSide"`
 	AveragePrice    string `json:"averagePrice"`
 	FilledQty       string `json:"filledQty"`
 	RealizedProfit  string `json:"realizedProfit"`
+	Commission      string `json:"commission"`
+	CommissionAsset string `json:"commissionAsset"`
 	ExecutedAt      int64  `json:"executedAt"`
 	TotalGridSteps  string `json:"totalGridSteps"`
 	CurrentGridStep string `json:"currentGridStep"`

@@ -31,15 +31,17 @@ type RmqAccountUpdatePosition struct {
 }
 
 type RmqOrderUpdateData struct {
-	Symbol         string  `json:"symbol"`
-	InstrumentType string  `json:"instrumentType"`
-	OrderId        string  `json:"orderId"`
-	TradeTime      string  `json:"tradeTime"`
-	PositionSide   string  `json:"positionSide"`
-	FilledQuantity float64 `json:"filledQuantity"`
-	OrderStatus    string  `json:"orderStatus"`
-	OriginalPrice  float64 `json:"originalPrice"`
-	ExecutionPrice float64 `json:"executionPrice"`
-	RealizedPnl    float64 `json:"realizedPnl"`
-	Tag            string  `json:"tag"`
+	Symbol          string  `json:"symbol"`
+	InstrumentType  string  `json:"instrumentType"`
+	OrderId         string  `json:"orderId"`
+	TradeTime       string  `json:"tradeTime"`
+	PositionSide    string  `json:"positionSide"`
+	FilledQuantity  float64 `json:"filledQuantity"`
+	Commission      float64 `json:"commission"`
+	CommissionAsset float64 `json:"commissionAsset"`
+	OrderStatus     string  `json:"orderStatus"`
+	OriginalPrice   float64 `json:"originalPrice"`
+	ExecutionPrice  float64 `json:"executionPrice"`
+	RealizedPnl     float64 `json:"realizedPnl"`
+	Tag             string  `json:"tag"`
 }
