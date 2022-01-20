@@ -123,6 +123,7 @@ func (s *Strategy) getOrdersLong(p0 float64, s0 float64, stopLoss bool) []*Order
 	p_2 := p0
 	order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_1, p_1)
 	order.Tag = "1"
+	order.GridNumber = 1
 	orders = append(orders, order)
 
 	// other grids
@@ -131,6 +132,7 @@ func (s *Strategy) getOrdersLong(p0 float64, s0 float64, stopLoss bool) []*Order
 		s_i := s_1 * s.Parameters.OrderFactor
 		order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_i, p_i)
 		order.Tag = fmt.Sprint(i)
+		order.GridNumber = int64(i)
 		orders = append(orders, order)
 		p_2 = p_1
 		p_1 = p_i
@@ -156,6 +158,7 @@ func (s *Strategy) getOrdersShort(p0 float64, s0 float64, stopLoss bool) []*Orde
 	p_2 := p0
 	order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_1, p_1)
 	order.Tag = "1"
+	order.GridNumber = 1
 	orders = append(orders, order)
 
 	// other grids
@@ -164,6 +167,7 @@ func (s *Strategy) getOrdersShort(p0 float64, s0 float64, stopLoss bool) []*Orde
 		s_i := s_1 * s.Parameters.OrderFactor
 		order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_i, p_i)
 		order.Tag = fmt.Sprint(i)
+		order.GridNumber = int64(i)
 		orders = append(orders, order)
 		p_2 = p_1
 		p_1 = p_i
