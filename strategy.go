@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/tbtc-bot/terrabot-sdk/data_types"
+	"github.com/tbtc-bot/terrabot-sdk/util"
 )
 
 type StrategyType string
@@ -190,14 +191,14 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 
 	if s.Parameters.CallBackRate < 0.1 {
 		// limit order
-		if s.PositionSide == PositionSideLong {
+		if util.ComparePositionSides(string(s.PositionSide), string(PositionSideLong)) {
 			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice)
 			order.ReduceOnly = true
 			order.Tag = "tp"
 			return order, nil
 
-		} else if s.PositionSide == PositionSideShort {
+		} else if util.ComparePositionSides(string(s.PositionSide), string(PositionSideShort)) {
 			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice)
 			order.ReduceOnly = true
@@ -205,15 +206,16 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 			return order, nil
 
 		} else {
-			return nil, fmt.Errorf("position side %s not recognized", s.PositionSide)
+			return nil, fmt.Errorf("position side %s not recognized", string(s.PositionSide))
 		}
+
 	} else {
 		// trailing profit order
-		if s.PositionSide == PositionSideLong {
+		if util.ComparePositionSides(string(s.PositionSide), string(PositionSideLong)) {
 			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			return NewOrderTrailing(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice, s.Parameters.CallBackRate), nil
 
-		} else if s.PositionSide == PositionSideShort {
+		} else if util.ComparePositionSides(string(s.PositionSide), string(PositionSideShort)) {
 			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			return NewOrderTrailing(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice, s.Parameters.CallBackRate), nil
 
