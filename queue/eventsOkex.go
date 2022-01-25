@@ -23,13 +23,11 @@ type RmqAccountUpdateBalance struct {
 }
 
 type RmqAccountUpdatePosition struct {
-	Symbol           string  `json:"symbol"`
-	InstrumentType   string  `json:"instrumentType"`
-	PositionAmount   float64 `json:"positionAmount"`
-	PositionSide     string  `json:"positionSide"`
-	EntryPrice       float64 `json:"entryPrice"`
-	Currency         string  `json:"ccy"`
-	PositionCurrency string  `json:"posCcy"` // this is needed by okex margin to determine the position side
+	Symbol         string  `json:"symbol"`
+	InstrumentType string  `json:"instrumentType"`
+	PositionAmount float64 `json:"positionAmount"`
+	PositionSide   string  `json:"positionSide"`
+	EntryPrice     float64 `json:"entryPrice"`
 }
 
 type RmqOrderUpdateData struct {
