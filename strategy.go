@@ -191,22 +191,26 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 
 	if s.Parameters.CallBackRate < 0.1 {
 		// limit order
-		if util.ComparePositionSides(string(s.PositionSide), string(PositionSideLong)) {
+		if util.ComparePositionSides(string(position.PositionSide), string(PositionSideLong)) {
 			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice)
-			order.ReduceOnly = true
+			if s.Type != "both" {
+				order.ReduceOnly = true
+			}
 			order.Tag = "tp"
 			return order, nil
 
-		} else if util.ComparePositionSides(string(s.PositionSide), string(PositionSideShort)) {
+		} else if util.ComparePositionSides(string(position.PositionSide), string(PositionSideShort)) {
 			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice)
-			order.ReduceOnly = true
+			if s.Type != "both" {
+				order.ReduceOnly = true
+			}
 			order.Tag = "tp"
 			return order, nil
 
 		} else {
-			return nil, fmt.Errorf("position side %s not recognized", string(s.PositionSide))
+			return nil, fmt.Errorf("position side %s not recognized", string(position.PositionSide))
 		}
 
 	} else {
