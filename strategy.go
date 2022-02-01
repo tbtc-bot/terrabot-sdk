@@ -115,6 +115,32 @@ func (s *Strategy) GridOrders(exchange string, balance float64, startPrice float
 	return orders, nil
 }
 
+//////////////////////////// TODO change this
+// this is a quick fix for okex both strategy
+func (s *Strategy) GridOrdersBySide(side SideType, balance float64, startPrice float64) ([]*Order, error) {
+	p0 := startPrice
+
+	// start size
+	var s0 float64
+	if s.Parameters.OrderBaseType == OrderBaseTypePerc {
+		s0 = (balance / startPrice) * (s.Parameters.OrderSize / 100)
+	} else if s.Parameters.OrderBaseType == OrderBaseTypeFix {
+		s0 = s.Parameters.OrderSize / startPrice
+	} else {
+		return nil, fmt.Errorf("order base type %s not recognized", s.Parameters.OrderBaseType)
+	}
+
+	if side == SideBuy {
+		return s.getOrdersLong(p0, s0, false), nil
+	} else if side == SideSell {
+		return s.getOrdersShort(p0, s0, false), nil
+	} else {
+		return nil, fmt.Errorf("side type %s not recognized", side)
+	}
+}
+
+////////////////////////////
+
 func (s *Strategy) getOrdersLong(p0 float64, s0 float64, stopLoss bool) []*Order {
 	orders := []*Order{}
 
