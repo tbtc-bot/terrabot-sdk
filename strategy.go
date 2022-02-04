@@ -46,6 +46,7 @@ func (sp StrategyParameters) String() string {
 }
 
 type Strategy struct {
+	Id           string             `json:"id"`
 	Type         StrategyType       `json:"type"`
 	Symbol       string             `json:"symbol"`
 	PositionSide PositionSideType   `json:"positionSide"`
