@@ -224,7 +224,7 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 			if s.Type != "both" {
 				order.ReduceOnly = true
 			}
-			order.Tag = "tp"
+			order.Tag = TagTakeProfit
 			return order, nil
 
 		} else if util.ComparePositionSides(string(position.PositionSide), string(PositionSideShort)) {
@@ -233,7 +233,7 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 			if s.Type != "both" {
 				order.ReduceOnly = true
 			}
-			order.Tag = "tp"
+			order.Tag = TagTakeProfit
 			return order, nil
 
 		} else {

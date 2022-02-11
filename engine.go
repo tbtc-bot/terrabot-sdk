@@ -18,6 +18,9 @@ const (
 	PositionSideNet   PositionSideType = "NET"
 	PositionSideLong  PositionSideType = "LONG"
 	PositionSideShort PositionSideType = "SHORT"
+
+	TagTakeProfit string = "tp"
+	TagStopLoss   string = "sl"
 )
 
 type Order struct {
