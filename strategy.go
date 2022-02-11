@@ -221,7 +221,7 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 		if util.ComparePositionSides(string(position.PositionSide), string(PositionSideLong)) {
 			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice)
-			if s.Type != "both" {
+			if s.Type != StrategyBoth {
 				order.ReduceOnly = true
 			}
 			order.Tag = TagTakeProfit
@@ -230,7 +230,7 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 		} else if util.ComparePositionSides(string(position.PositionSide), string(PositionSideShort)) {
 			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice)
-			if s.Type != "both" {
+			if s.Type != StrategyBoth {
 				order.ReduceOnly = true
 			}
 			order.Tag = TagTakeProfit
