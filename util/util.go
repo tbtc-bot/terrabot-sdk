@@ -34,16 +34,16 @@ func ChunkSlice(slice []int64, chunkSize int) [][]int64 {
 
 func GetCurrencyFromSymbol(symbol string) (string, error) {
 
-	if symbol[len(symbol)-4:] == "USDT" {
+	if len(symbol) >= 4 && symbol[len(symbol)-4:] == "USDT" {
 		return "USDT", nil
 
-	} else if symbol[len(symbol)-4:] == "BUSD" {
+	} else if len(symbol) >= 4 && symbol[len(symbol)-4:] == "BUSD" {
 		return "BUSD", nil
 
-	} else if symbol[len(symbol)-3:] == "BNB" {
+	} else if len(symbol) >= 3 && symbol[len(symbol)-3:] == "BNB" {
 		return "BNB", nil
 
-	} else if symbol[len(symbol)-3:] == "BTC" {
+	} else if len(symbol) >= 3 && symbol[len(symbol)-3:] == "BTC" {
 		return "BTC", nil
 
 	} else {
