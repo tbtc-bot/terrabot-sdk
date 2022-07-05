@@ -16,8 +16,8 @@ const (
 
 	// lock retry parameters
 	NEW_MUTEX_TRIES       = 2000
-	minRetryDelayMilliSec = 5
-	maxRetryDelayMilliSec = 10
+	minRetryDelayMilliSec = 10
+	maxRetryDelayMilliSec = 20
 )
 
 var ctx = context.Background()
