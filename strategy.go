@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/tbtc-bot/terrabot-sdk/data_types"
+	"github.com/tbtc-bot/terrabot-sdk/util"
 )
 
 type StrategyType string
@@ -45,6 +46,7 @@ func (sp StrategyParameters) String() string {
 }
 
 type Strategy struct {
+	Id           string             `json:"id"`
 	Type         StrategyType       `json:"type"`
 	Symbol       string             `json:"symbol"`
 	PositionSide PositionSideType   `json:"positionSide"`
@@ -114,6 +116,32 @@ func (s *Strategy) GridOrders(exchange string, balance float64, startPrice float
 	return orders, nil
 }
 
+//////////////////////////// TODO change this
+// this is a quick fix for okex both strategy
+func (s *Strategy) GridOrdersBySide(side SideType, balance float64, startPrice float64) ([]*Order, error) {
+	p0 := startPrice
+
+	// start size
+	var s0 float64
+	if s.Parameters.OrderBaseType == OrderBaseTypePerc {
+		s0 = (balance / startPrice) * (s.Parameters.OrderSize / 100)
+	} else if s.Parameters.OrderBaseType == OrderBaseTypeFix {
+		s0 = s.Parameters.OrderSize / startPrice
+	} else {
+		return nil, fmt.Errorf("order base type %s not recognized", s.Parameters.OrderBaseType)
+	}
+
+	if side == SideBuy {
+		return s.getOrdersLong(p0, s0, false), nil
+	} else if side == SideSell {
+		return s.getOrdersShort(p0, s0, false), nil
+	} else {
+		return nil, fmt.Errorf("side type %s not recognized", side)
+	}
+}
+
+////////////////////////////
+
 func (s *Strategy) getOrdersLong(p0 float64, s0 float64, stopLoss bool) []*Order {
 	orders := []*Order{}
 
@@ -123,6 +151,7 @@ func (s *Strategy) getOrdersLong(p0 float64, s0 float64, stopLoss bool) []*Order
 	p_2 := p0
 	order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_1, p_1)
 	order.Tag = "1"
+	order.GridNumber = 1
 	orders = append(orders, order)
 
 	// other grids
@@ -131,6 +160,7 @@ func (s *Strategy) getOrdersLong(p0 float64, s0 float64, stopLoss bool) []*Order
 		s_i := s_1 * s.Parameters.OrderFactor
 		order := NewOrderLimit(s.Symbol, SideBuy, PositionSideLong, s_i, p_i)
 		order.Tag = fmt.Sprint(i)
+		order.GridNumber = int64(i)
 		orders = append(orders, order)
 		p_2 = p_1
 		p_1 = p_i
@@ -156,6 +186,7 @@ func (s *Strategy) getOrdersShort(p0 float64, s0 float64, stopLoss bool) []*Orde
 	p_2 := p0
 	order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_1, p_1)
 	order.Tag = "1"
+	order.GridNumber = 1
 	orders = append(orders, order)
 
 	// other grids
@@ -164,6 +195,7 @@ func (s *Strategy) getOrdersShort(p0 float64, s0 float64, stopLoss bool) []*Orde
 		s_i := s_1 * s.Parameters.OrderFactor
 		order := NewOrderLimit(s.Symbol, SideSell, PositionSideShort, s_i, p_i)
 		order.Tag = fmt.Sprint(i)
+		order.GridNumber = int64(i)
 		orders = append(orders, order)
 		p_2 = p_1
 		p_1 = p_i
@@ -186,30 +218,35 @@ func (s *Strategy) TakeProfitOrder(position Position) (*Order, error) {
 
 	if s.Parameters.CallBackRate < 0.1 {
 		// limit order
-		if s.PositionSide == PositionSideLong {
+		if util.ComparePositionSides(string(position.PositionSide), string(PositionSideLong)) {
 			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice)
-			order.ReduceOnly = true
-			order.Tag = "tp"
+			if s.Type != StrategyBoth {
+				order.ReduceOnly = true
+			}
+			order.Tag = TagTakeProfit
 			return order, nil
 
-		} else if s.PositionSide == PositionSideShort {
+		} else if util.ComparePositionSides(string(position.PositionSide), string(PositionSideShort)) {
 			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			order := NewOrderLimit(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice)
-			order.ReduceOnly = true
-			order.Tag = "tp"
+			if s.Type != StrategyBoth {
+				order.ReduceOnly = true
+			}
+			order.Tag = TagTakeProfit
 			return order, nil
 
 		} else {
-			return nil, fmt.Errorf("position side %s not recognized", s.PositionSide)
+			return nil, fmt.Errorf("position side %s not recognized", string(position.PositionSide))
 		}
+
 	} else {
 		// trailing profit order
-		if s.PositionSide == PositionSideLong {
+		if util.ComparePositionSides(string(s.PositionSide), string(PositionSideLong)) {
 			takeProfitPrice := position.EntryPrice * (1 + takeStep/100)
 			return NewOrderTrailing(s.Symbol, SideSell, PositionSideLong, position.Size, takeProfitPrice, s.Parameters.CallBackRate), nil
 
-		} else if s.PositionSide == PositionSideShort {
+		} else if util.ComparePositionSides(string(s.PositionSide), string(PositionSideShort)) {
 			takeProfitPrice := position.EntryPrice * (1 - takeStep/100)
 			return NewOrderTrailing(s.Symbol, SideBuy, PositionSideShort, math.Abs(position.Size), takeProfitPrice, s.Parameters.CallBackRate), nil
 

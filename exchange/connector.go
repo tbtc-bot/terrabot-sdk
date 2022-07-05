@@ -29,6 +29,8 @@ type ExchangeConnector interface {
 	PlaceOrderTrailingRetry(session terrabot.Session, order *terrabot.Order, attempts int, sleep time.Duration) (orderID string, err error)
 
 	GetOpenOrders(session terrabot.Session, symbol string, positionSide terrabot.PositionSideType) ([]string, error)
+	GetOpenOrdersBySide(session terrabot.Session, symbol string, side terrabot.SideType) ([]string, error)
+
 	GetPosition(session terrabot.Session, symbol string, positionSide terrabot.PositionSideType) (*terrabot.Position, error)
 	ClosePosition(session terrabot.Session, symbol string, currency string) error
 

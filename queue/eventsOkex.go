@@ -35,6 +35,7 @@ type RmqOrderUpdateData struct {
 	InstrumentType  string  `json:"instrumentType"`
 	OrderId         string  `json:"orderId"`
 	TradeTime       string  `json:"tradeTime"`
+	Side            string  `json:"side"`
 	PositionSide    string  `json:"positionSide"`
 	FilledQuantity  float64 `json:"filledQuantity"`
 	Commission      float64 `json:"commission"`
