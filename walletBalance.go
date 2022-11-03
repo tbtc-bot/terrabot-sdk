@@ -16,6 +16,7 @@ type Asset string
 
 const (
 	USDT Asset = "USDT"
+	USDC Asset = "USDC"
 	BUSD Asset = "BUSD"
 	BNB  Asset = "BNB"
 )
