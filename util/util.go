@@ -37,6 +37,9 @@ func GetCurrencyFromSymbol(symbol string) (string, error) {
 	if len(symbol) >= 4 && symbol[len(symbol)-4:] == "USDT" {
 		return "USDT", nil
 
+	} else if len(symbol) >= 4 && symbol[len(symbol)-4:] == "USDC" {
+		return "USDC", nil
+
 	} else if len(symbol) >= 4 && symbol[len(symbol)-4:] == "BUSD" {
 		return "BUSD", nil
 
