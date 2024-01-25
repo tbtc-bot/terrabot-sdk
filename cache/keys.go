@@ -59,6 +59,9 @@ func GetRedisKeyBase(exchange string, session terrabot.Session) string {
 	case data_types.BinanceFutures:
 		return exchange + "-" + session.BotId + "-" + session.Strategy.Symbol + "-" + string(session.Strategy.PositionSide) // e.g. binancef-botId-BTCUSDT-LONG
 
+	case data_types.BybitFutures:
+		return exchange + "-" + session.BotId + "-" + session.Strategy.Symbol + "-" + string(session.Strategy.PositionSide) // e.g. bybitf-botId-BTCUSDT-LONG
+
 	case data_types.OkexMargin, data_types.OkexFutures:
 		return exchange + "-" + session.BotId + "-" + session.Strategy.Symbol // e.g. okexf-botId-BTCUSDT
 
